@@ -22,7 +22,7 @@ Add this to your package's `pubspec.yaml` file:
 
 ```yaml
 dependencies:
-  flutter_project_structure: ^1.0.1
+  flutter_project_structure: ^1.0.2
 ```
 
 Then run:
@@ -50,7 +50,7 @@ This will analyze the `lib` directory and generate a `project_structure.md` file
 You can specify custom root directories and output file names:
 
 ```
-dart run flutter_project_structure --root-dir=src --output=custom_structure.md
+dart run flutter_project_structure --root-dir=src --output=custom_structure.md --no-file-stats --no-todo-comments
 ```
 
 This will analyze the `src` directory and output the structure to `custom_structure.md`.

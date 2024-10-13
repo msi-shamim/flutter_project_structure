@@ -5,6 +5,9 @@ import 'package:analyzer/dart/analysis/utilities.dart';
 import 'package:analyzer/dart/ast/ast.dart';
 import 'package:path/path.dart' as path;
 
+/// Adds a path comment to the top of a Dart file.
+///
+/// The path comment includes the relative path from the 'lib' directory.
 void addPathComment(File file) {
   final content = file.readAsStringSync();
   final relativePath =
@@ -27,6 +30,7 @@ void addPathComment(File file) {
   print('Added comment: $comment');
 }
 
+/// Lists imports for a given Dart file and adds them to the project structure.
 void listImports(File file, StringBuffer projectStructure, int level) {
   final content = file.readAsStringSync();
   final result = parseString(content: content);

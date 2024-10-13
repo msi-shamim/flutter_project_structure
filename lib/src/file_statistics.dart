@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:path/path.dart' as path;
 
+/// Collects and stores statistics about Dart files in the project.
 class FileStatistics {
   int totalFiles = 0;
   int dartFiles = 0;
@@ -13,6 +14,7 @@ class FileStatistics {
   String smallestFile = '';
   int smallestFileLines = 0;
 
+  /// Updates statistics for a single Dart file.
   void updateFileStats(File file) {
     totalFiles++;
     dartFiles++;
@@ -20,14 +22,17 @@ class FileStatistics {
     final lineCount = lines.length;
     totalLines += lineCount;
 
+    final relativePath = path.join('lib',
+        path.relative(file.path, from: path.dirname(path.dirname(file.path))));
+
     if (lineCount > largestFileLines) {
       largestFileLines = lineCount;
-      largestFile = file.path;
+      largestFile = relativePath;
     }
 
     if (smallestFileLines == 0 || lineCount < smallestFileLines) {
       smallestFileLines = lineCount;
-      smallestFile = file.path;
+      smallestFile = relativePath;
     }
   }
 
@@ -37,8 +42,8 @@ class FileStatistics {
 - Total Files: $totalFiles
 - Dart Files: $dartFiles
 - Total Lines of Dart Code: $totalLines
-- Largest File: `${path.basename(largestFile)}` with $largestFileLines lines
-- Smallest File: `${path.basename(smallestFile)}` with $smallestFileLines lines
+- Largest File: `$largestFile` with $largestFileLines lines
+- Smallest File: `$smallestFile` with $smallestFileLines lines
 ''';
   }
 }

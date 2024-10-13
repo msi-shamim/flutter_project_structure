@@ -1,3 +1,8 @@
+## 1.0.2
+
+- Code optimized
+- Proper documentations for better understanding
+
 ## 1.0.1
 
 - File Statistics to count of total files, directories, and Dart files. 

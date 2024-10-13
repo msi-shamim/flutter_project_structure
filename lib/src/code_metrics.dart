@@ -4,10 +4,13 @@ import 'dart:io';
 import 'package:analyzer/dart/analysis/utilities.dart';
 import 'package:analyzer/dart/ast/ast.dart';
 import 'package:analyzer/dart/ast/visitor.dart';
+import 'package:path/path.dart' as path;
 
+/// Analyzes and stores code metrics for Dart files.
 class CodeMetrics {
   final Map<String, FileMetrics> fileMetrics = {};
 
+  /// Analyzes a single Dart file and stores its metrics.
   void analyzeFile(File file) {
     final content = file.readAsStringSync();
     final result = parseString(content: content);
@@ -16,7 +19,9 @@ class CodeMetrics {
     final visitor = _MetricsVisitor();
     unit.accept(visitor);
 
-    fileMetrics[file.path] = FileMetrics(
+    final relativePath = path.join('lib',
+        path.relative(file.path, from: path.dirname(path.dirname(file.path))));
+    fileMetrics[relativePath] = FileMetrics(
       linesOfCode: content.split('\n').length,
       classes: visitor.classes,
       methods: visitor.methods,
@@ -41,6 +46,7 @@ class CodeMetrics {
   }
 }
 
+/// Stores metrics for a single Dart file.
 class FileMetrics {
   FileMetrics({
     required this.linesOfCode,
@@ -56,6 +62,7 @@ class FileMetrics {
   double get commentRatio => (commentLines / linesOfCode) * 100;
 }
 
+/// AST visitor to collect metrics from a Dart file.
 class _MetricsVisitor extends RecursiveAstVisitor<void> {
   int classes = 0;
   int methods = 0;
