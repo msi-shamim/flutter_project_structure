@@ -100,7 +100,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## Support the Project
 
-If you find this package helpful, consider supporting the it by liking it in pub.dev
+If you find this package helpful, consider supporting it by Liking it in pub.dev
 
 ## Connect with Me
 
