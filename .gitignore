@@ -1,0 +1,43 @@
+# Dart related
+.dart_tool/
+.packages
+.pub/
+build/
+pubspec.lock
+
+# IDE related
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+
+# macOS related
+.DS_Store
+
+# Test related
+coverage/
+
+# Temporary files
+*.log
+*.tmp
+*.temp
+*.swp
+
+# Documentation
+doc/api/
+
+# Package specific
+*.md
+!README.md
+!CHANGELOG.md
+!LICENSE
+
+# Dart package specific
+/example/.dart_tool/
+/example/.packages
+/example/build/
+/example/pubspec.lock
+
+# Don't ignore example source code
+!/example/main.dart
