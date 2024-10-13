@@ -1,3 +1,4 @@
+// bin/flutter_project_structure.dart
 import 'package:args/args.dart';
 import 'package:flutter_project_structure/flutter_project_structure.dart';
 
@@ -9,6 +10,14 @@ void main(List<String> arguments) {
         abbr: 'o',
         defaultsTo: 'project_structure.md',
         help: 'The output file name')
+    ..addFlag('file-stats',
+        abbr: 'f', defaultsTo: true, help: 'Include file statistics')
+    ..addFlag('todo-comments',
+        abbr: 't', defaultsTo: true, help: 'Include TODO and FIXME comments')
+    ..addFlag('dependency-analysis',
+        abbr: 'd', defaultsTo: true, help: 'Include dependency analysis')
+    ..addFlag('code-metrics',
+        abbr: 'm', defaultsTo: true, help: 'Include code metrics')
     ..addFlag('help',
         abbr: 'h', negatable: false, help: 'Show this help message');
 
@@ -23,9 +32,19 @@ void main(List<String> arguments) {
 
     final rootDir = results['root-dir'];
     final outputFile = results['output'];
+    final includeFileStats = results['file-stats'];
+    final includeTodoComments = results['todo-comments'];
+    final includeDependencyAnalysis = results['dependency-analysis'];
+    final includeCodeMetrics = results['code-metrics'];
 
-    final projectStructure =
-        FlutterProjectStructure(rootDir: rootDir, outputFile: outputFile);
+    final projectStructure = FlutterProjectStructure(
+      rootDir: rootDir,
+      outputFile: outputFile,
+      includeFileStats: includeFileStats,
+      includeTodoComments: includeTodoComments,
+      includeDependencyAnalysis: includeDependencyAnalysis,
+      includeCodeMetrics: includeCodeMetrics,
+    );
     projectStructure.generate();
 
     print('Project structure generated successfully.');

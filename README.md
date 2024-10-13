@@ -9,6 +9,12 @@ A Dart package to showcase the current structure of your Flutter project and add
 - List imports for each file in the project structure
 - Support for custom root directories and output file names
 - Command-line interface for easy project structure generation
+- File Statistics to count of total files, directories, and Dart files.
+- TODO and FIXME Comments to scan files for TODO and FIXME comments and list them in a separate collapsible section.
+- Dependency Analysis to list all external package dependencies used in the project.
+- Code Metrics to calculate and display simple code metrics like lines of code, comment percentage, etc. 
+
+Before use don't forget to check the [CHANGELOG](CHANGELOG.md) to ensure latest features.
 
 ## Installation
 
@@ -16,7 +22,7 @@ Add this to your package's `pubspec.yaml` file:
 
 ```yaml
 dependencies:
-  flutter_project_structure: ^1.0.0
+  flutter_project_structure: ^1.0.1
 ```
 
 Then run:
@@ -27,7 +33,7 @@ flutter pub get
 
 ## Usage
 
-You can use this package as a command-line tool to generate your project structure.
+You can use this package as a command-line tool to generate your project structure within a press of the Enter button.
 
 ### Basic Usage
 
@@ -53,7 +59,13 @@ This will analyze the `src` directory and output the structure to `custom_struct
 
 - `--root-dir` or `-r`: Specify the root directory to analyze (default: 'lib')
 - `--output` or `-o`: Specify the output file name (default: 'project_structure.md')
-- `--help` or `-h`: Show the help message
+- `--file-stats` or `-f`: Include file statistics (default: true)
+- `--todo-comments` or `-t`: Include TODO and FIXME comments (default: true)
+- `--dependency-analysis` or `-d`: Include dependency analysis (default: true)
+- `--code-metrics` or `-m`: Include code metrics (default: true)
+- `--help` or `-h`: Show this help message
+
+You can use `--no-file-stats`, `--no-todo-comments`, `--no-dependency-analysis`, or `--no-code-metrics` to exclude specific features from the analysis.
 
 ## Programmatic Usage
 
@@ -116,6 +128,15 @@ Abwaab is one of the top EdTech platforms in the MENA region. I played a crucial
 
 [Visit Abwaab](https://www.abwaab.com)
 
+## My Organization
+
+### Increments Inc. 
+
+Our software automates restaurants, optimizes energy, revolutionizes finance, improves healthcare, innovates education, streamlines garments, and drives paperless solutions.
+Increments Inc. is Bangladesh's #1 mobile app development agency.
+
+[Visit Increments Inc.](https://incrementsinc.com)
+
 ---
 
-Thank you for checking out Flutter Project Structure! We hope it proves useful in your development workflow.
+Thank you for checking out Flutter Project Structure! I hope it proves useful in your development workflow. Happy Coding! ☕️ 

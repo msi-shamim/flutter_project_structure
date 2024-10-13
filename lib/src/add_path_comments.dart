@@ -1,3 +1,4 @@
+// lib/src/add_path_comments.dart
 import 'dart:io';
 
 import 'package:analyzer/dart/analysis/utilities.dart';
