@@ -22,8 +22,8 @@ void addPathComment(File file) {
     file.writeAsStringSync(comment + content);
   }
 
-  print("Processed: ${file.path}");
-  print("Added comment: $comment");
+  print('Processed: ${file.path}');
+  print('Added comment: $comment');
 }
 
 void listImports(File file, StringBuffer projectStructure, int level) {
@@ -33,7 +33,7 @@ void listImports(File file, StringBuffer projectStructure, int level) {
 
   final imports = <String>[];
 
-  for (var directive in unit.directives) {
+  for (final directive in unit.directives) {
     if (directive is ImportDirective) {
       imports.add(directive.uri.stringValue!);
     }
@@ -45,7 +45,7 @@ void listImports(File file, StringBuffer projectStructure, int level) {
   if (imports.isNotEmpty) {
     projectStructure.writeln('$indent  <details>');
     projectStructure.writeln('$indent    <summary>Imports</summary>\n');
-    for (var import in imports) {
+    for (final import in imports) {
       projectStructure.writeln('$indent    - `$import`');
     }
     projectStructure.writeln('$indent  </details>\n');
