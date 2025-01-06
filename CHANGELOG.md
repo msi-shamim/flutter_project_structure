@@ -1,3 +1,9 @@
+## 1.0.3
+
+- Dependencies updated 
+- Dart version upgraded 
+- More Optimized 
+
 ## 1.0.2
 
 - Code optimized
