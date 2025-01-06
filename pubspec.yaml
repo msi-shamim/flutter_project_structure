@@ -1,6 +1,6 @@
 name: flutter_project_structure
 description: A package to showcase project structure and add path comments to Dart files.
-version: 1.0.3+3
+version: 1.0.3
 homepage: https://github.com/msi-shamim/flutter_project_structure
 license: MIT
 
