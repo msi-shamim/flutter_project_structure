@@ -32,6 +32,7 @@ doc/api/
 !README.md
 !CHANGELOG.md
 !LICENSE
+!VISION.md
 
 # Dart package specific
 /example/.dart_tool/
