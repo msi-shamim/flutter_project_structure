@@ -1,3 +1,7 @@
+## 2.0.2
+
+- Updated version references across all docs and MCP server
+
 ## 2.0.1
 
 - Broadened `analyzer` dependency to support versions 7.x through 12.x
