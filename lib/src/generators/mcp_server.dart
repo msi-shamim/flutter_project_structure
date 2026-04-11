@@ -29,7 +29,7 @@ class McpProjectServer {
     _server = McpServer(
       const Implementation(
         name: 'flutter-project-structure',
-        version: '2.0.1',
+        version: '2.0.3',
       ),
       options: const McpServerOptions(
         capabilities: ServerCapabilities(
