@@ -1,4 +1,5 @@
 test_output/
 .ai-context/
+doc/
 CLAUDE.md
 project_structure.md
