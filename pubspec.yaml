@@ -1,9 +1,8 @@
 name: flutter_project_structure
 description: >-
   Save 90% of AI tokens. Analyze Flutter/Dart project structure, generate
-  AI-friendly context (CLAUDE.md, .ai-context/), and provide MCP server
-  for live querying. One command = full AI-readiness.
-version: 2.0.0
+  AI-friendly context (CLAUDE.md, .ai-context/) and MCP server for live querying.
+version: 2.0.1
 homepage: https://github.com/msi-shamim/flutter_project_structure
 repository: https://github.com/msi-shamim/flutter_project_structure
 issue_tracker: https://github.com/msi-shamim/flutter_project_structure/issues
@@ -19,7 +18,7 @@ environment:
   sdk: '>=3.6.0 <4.0.0'
 
 dependencies:
-  analyzer: ^7.1.0
+  analyzer: '>=7.1.0 <13.0.0'
   path: ^1.9.1
   args: ^2.6.0
   yaml: ^3.1.3

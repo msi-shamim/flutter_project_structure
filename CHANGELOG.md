@@ -1,3 +1,9 @@
+## 2.0.1
+
+- Broadened `analyzer` dependency to support versions 7.x through 12.x
+- Optimized pubspec description for pub.dev scoring
+- Expanded test suite to 38 tests covering all v2.0.0 features
+
 ## 2.0.0 — AI Agent Integration
 
 The biggest update yet. One command now makes your entire Flutter project AI-ready — path comments in every file, comprehensive analysis, and multiple output formats for AI agents. **Save 90% of AI tokens** spent on project orientation. Handle 9x more projects with the same AI subscription.
