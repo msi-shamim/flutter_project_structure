@@ -1,66 +1,32 @@
 // bin/flutter_project_structure.dart
-import 'package:args/args.dart';
-import 'package:flutter_project_structure/flutter_project_structure.dart';
+import 'package:args/command_runner.dart';
+import 'package:flutter_project_structure/src/commands/ai_context_command.dart';
+import 'package:flutter_project_structure/src/commands/analyze_command.dart';
+import 'package:flutter_project_structure/src/commands/claude_md_command.dart';
+import 'package:flutter_project_structure/src/commands/mcp_server_command.dart';
 
 /// The main entry point for the Flutter Project Structure CLI.
-void main(List<String> arguments) {
-  // Set up the argument parser with various options and flags
-  final parser = ArgParser()
-    ..addOption('root-dir',
-        abbr: 'r', defaultsTo: 'lib', help: 'The root directory to analyze')
-    ..addOption('output',
-        abbr: 'o',
-        defaultsTo: 'project_structure.md',
-        help: 'The output file name')
-    ..addFlag('file-stats',
-        abbr: 'f', defaultsTo: true, help: 'Include file statistics')
-    ..addFlag('todo-comments',
-        abbr: 't', defaultsTo: true, help: 'Include TODO and FIXME comments')
-    ..addFlag('dependency-analysis',
-        abbr: 'd', defaultsTo: true, help: 'Include dependency analysis')
-    ..addFlag('code-metrics',
-        abbr: 'm', defaultsTo: true, help: 'Include code metrics')
-    ..addFlag('help',
-        abbr: 'h', negatable: false, help: 'Show this help message');
+void main(List<String> arguments) async {
+  final runner = CommandRunner<void>(
+    'flutter_project_structure',
+    'Analyze and document Flutter/Dart project structure.',
+  )
+    ..addCommand(AnalyzeCommand())
+    ..addCommand(ClaudeMdCommand())
+    ..addCommand(AiContextCommand())
+    ..addCommand(McpServerCommand());
+
+  // Backward compatibility: if no subcommand is provided (i.e., arguments
+  // are empty or start with a flag), prepend 'analyze' so the old CLI
+  // syntax continues to work.
+  final effectiveArgs = arguments.isEmpty || arguments[0].startsWith('-')
+      ? ['analyze', ...arguments]
+      : arguments;
 
   try {
-    // Parse the command-line arguments
-    final results = parser.parse(arguments);
-
-    // If help flag is set, display usage information and exit
-    if (results['help']) {
-      print('Usage: dart run flutter_project_structure [options]');
-      print(parser.usage);
-      return;
-    }
-
-    // Extract options and flags from parsed results
-    final rootDir = results['root-dir'];
-    final outputFile = results['output'];
-    final includeFileStats = results['file-stats'];
-    final includeTodoComments = results['todo-comments'];
-    final includeDependencyAnalysis = results['dependency-analysis'];
-    final includeCodeMetrics = results['code-metrics'];
-
-    // Create and configure the FlutterProjectStructure instance
-    final projectStructure = FlutterProjectStructure(
-      rootDir: rootDir,
-      outputFile: outputFile,
-      includeFileStats: includeFileStats,
-      includeTodoComments: includeTodoComments,
-      includeDependencyAnalysis: includeDependencyAnalysis,
-      includeCodeMetrics: includeCodeMetrics,
-    );
-
-    // Generate the project structure
-    projectStructure.generate();
-
-    print('Project structure generated successfully.');
-    print('Output file: $outputFile');
+    await runner.run(effectiveArgs);
   } catch (e) {
-    // Handle any errors that occur during execution
     print('Error: $e');
-    print('Usage: dart run flutter_project_structure [options]');
-    print(parser.usage);
+    print(runner.usage);
   }
 }

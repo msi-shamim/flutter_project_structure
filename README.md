@@ -1,18 +1,33 @@
 # Flutter Project Structure
 
-A Dart package to showcase the current structure of your Flutter project and add path comments at the top of each Dart file.
+A Dart package that bridges your codebase and AI agents. Analyze, document, and visualize your Flutter/Dart project structure. Generate AI-friendly context (`CLAUDE.md`, `.ai-context/`) and provide an MCP server for live querying.
 
 ## Features
 
+### Core Analysis
 - Generate a markdown file detailing your project's structure
-- Add path comments to the top of each Dart file in your project
-- List imports for each file in the project structure
-- Support for custom root directories and output file names
-- Command-line interface for easy project structure generation
-- File Statistics to count of total files, directories, and Dart files.
-- TODO and FIXME Comments to scan files for TODO and FIXME comments and list them in a separate collapsible section.
-- Dependency Analysis to list all external package dependencies used in the project.
-- Code Metrics to calculate and display simple code metrics like lines of code, comment percentage, etc. 
+- Add path comments to the top of each Dart file
+- List imports for each file in collapsible sections
+- File statistics (total files, LOC, largest/smallest files)
+- TODO/FIXME comment scanning with line numbers
+- Package dependency analysis (AST-based)
+- Code metrics (classes, methods, comment ratio per file)
+
+### AI Agent Integration (v2.0.0)
+- **Project Type Detection** — monorepo, plugin, flutter_app, or dart_package
+- **Framework Detection** — GetX, Riverpod, Bloc/Cubit, Provider, Dio, GoRouter, AutoRoute, Freezed, Hive, Drift
+- **Architecture Analysis** — layers from directory names, entry points, layer dependency graph
+- **Convention Analysis** — file/class naming patterns and suffix adoption rates
+- **File Purpose Classification** — widget, model, service, bloc, controller, etc.
+- **Aggregated Metrics** — averages, totals, top-5 largest files, files without comments
+- **CLAUDE.md Generator** — AI-optimized project context file (<20KB)
+- **.ai-context/ Generator** — 6 structured JSON files for programmatic consumption
+- **MCP Server** — 5 live-query tools over stdio with `--watch` mode
+
+### Modular Pipeline
+- **FileAnalyzer interface** — single-pass file processing, each file read and parsed once
+- **AnalysisPipeline** — distributes pre-parsed AST to all registered analyzers
+- **ProjectContext** — aggregated results consumed by generators and MCP tools
 
 Before use don't forget to check the [CHANGELOG](CHANGELOG.md) to ensure latest features.
 
@@ -22,61 +37,175 @@ Add this to your package's `pubspec.yaml` file:
 
 ```yaml
 dependencies:
-  flutter_project_structure: ^1.0.2
+  flutter_project_structure: ^2.0.0
 ```
 
 Then run:
 
 ```
-flutter pub get
+dart pub get
 ```
 
-## Usage
+## CLI Usage
 
-You can use this package as a command-line tool to generate your project structure within a press of the Enter button.
+### Analyze (default)
 
-### Basic Usage
-
-To generate the project structure with default settings:
+Generate project structure markdown with path comments:
 
 ```
 dart run flutter_project_structure
+dart run flutter_project_structure analyze --root-dir=lib --output=structure.md
 ```
 
-This will analyze the `lib` directory and generate a `project_structure.md` file in your project root.
+Running without a subcommand defaults to `analyze` for backward compatibility.
 
-### Custom Usage
+### Generate CLAUDE.md
 
-You can specify custom root directories and output file names:
+Generate an AI agent context file (read-only, no source file modification):
 
 ```
-dart run flutter_project_structure --root-dir=src --output=custom_structure.md --no-file-stats --no-todo-comments
+dart run flutter_project_structure claude-md
+dart run flutter_project_structure claude-md --root-dir=src --output=CLAUDE.md
 ```
 
-This will analyze the `src` directory and output the structure to `custom_structure.md`.
+### Generate .ai-context/
+
+Generate structured JSON files + CLAUDE.md (read-only):
+
+```
+dart run flutter_project_structure ai-context
+dart run flutter_project_structure ai-context --root-dir=lib --output-dir=.ai-context
+```
+
+Creates 6 JSON files: `architecture.json`, `files.json`, `patterns.json`, `conventions.json`, `metrics.json`, `todos.json`.
+
+### MCP Server
+
+Start an MCP server for live AI agent queries:
+
+```
+dart run flutter_project_structure mcp-server
+dart run flutter_project_structure mcp-server --watch
+```
+
+With `--watch`, the server re-analyzes when `.dart` files change (2-second debounce).
+
+**5 MCP tools exposed:**
+- `get_architecture` — project type, layers, dependency graph, entry points
+- `get_file_purpose(path)` — purpose and metrics for a specific file
+- `get_dependencies(package?)` — package dependencies, optionally filtered
+- `get_conventions` — naming patterns and suffix adoption
+- `get_todos(severity?)` — TODO/FIXME items, optionally filtered by severity
+
+**Claude Code configuration:**
+```json
+{
+  "mcpServers": {
+    "flutter-project-structure": {
+      "command": "dart",
+      "args": ["run", "flutter_project_structure", "mcp-server", "--watch"]
+    }
+  }
+}
+```
 
 ### Options
 
-- `--root-dir` or `-r`: Specify the root directory to analyze (default: 'lib')
-- `--output` or `-o`: Specify the output file name (default: 'project_structure.md')
+**Analyze command flags:**
+- `--root-dir` or `-r`: Root directory to analyze (default: 'lib')
+- `--output` or `-o`: Output file name (default: 'project_structure.md')
 - `--file-stats` or `-f`: Include file statistics (default: true)
-- `--todo-comments` or `-t`: Include TODO and FIXME comments (default: true)
+- `--todo-comments` or `-t`: Include TODO/FIXME comments (default: true)
 - `--dependency-analysis` or `-d`: Include dependency analysis (default: true)
 - `--code-metrics` or `-m`: Include code metrics (default: true)
-- `--help` or `-h`: Show this help message
+- `--project-type`: Detect project type (default: true)
+- `--framework-detection`: Detect frameworks (default: true)
+- `--architecture`: Analyze architectural layers (default: true)
+- `--conventions`: Analyze naming conventions (default: true)
+- `--file-purpose`: Classify file purposes (default: true)
+- `--metrics-aggregation`: Compute aggregated metrics (default: true)
 
-You can use `--no-file-stats`, `--no-todo-comments`, `--no-dependency-analysis`, or `--no-code-metrics` to exclude specific features from the analysis.
+Use `--no-<flag>` to disable any feature (e.g., `--no-framework-detection`).
 
 ## Programmatic Usage
 
-You can also use this package programmatically in your Dart code:
+### Basic (v1.x compatible)
 
 ```dart
 import 'package:flutter_project_structure/flutter_project_structure.dart';
 
 void main() {
-  final projectStructure = FlutterProjectStructure(rootDir: 'lib', outputFile: 'project_structure.md');
-  projectStructure.generate();
+  final structure = FlutterProjectStructure(rootDir: 'lib', outputFile: 'project_structure.md');
+  structure.generate(); // Writes markdown + adds path comments to source files
+}
+```
+
+### Read-Only Analysis (v2.0.0)
+
+```dart
+import 'package:flutter_project_structure/flutter_project_structure.dart';
+
+void main() {
+  final structure = FlutterProjectStructure(rootDir: 'lib');
+  final context = structure.runAnalysis(); // Read-only, no file modification
+  if (context == null) return;
+
+  print('Project type: ${context.projectTypeDetector?.projectType}');
+  print('Total files: ${context.fileStatistics.totalFiles}');
+  print('Frameworks: ${context.frameworkDetector?.detectedFrameworks.keys}');
+}
+```
+
+### Generate AI Context
+
+```dart
+import 'package:flutter_project_structure/flutter_project_structure.dart';
+
+void main() {
+  final structure = FlutterProjectStructure(rootDir: 'lib');
+  final context = structure.runAnalysis();
+  if (context == null) return;
+
+  // Generate CLAUDE.md
+  ClaudeMdGenerator(context).generate(outputPath: 'CLAUDE.md');
+
+  // Generate .ai-context/ JSON files
+  AiContextGenerator(context).generate(outputDir: '.ai-context');
+}
+```
+
+## Architecture
+
+```
+AnalysisPipeline (reads & parses each file once)
+  ├── FileStatistics        — file/line counts, largest/smallest files
+  ├── TodoComments          — TODO/FIXME scanning
+  ├── DependencyAnalysis    — package import mapping (AST-based)
+  ├── CodeMetrics           — classes, methods, comment ratio (AST-based)
+  ├── FrameworkDetector     — framework/library detection (pubspec + AST)
+  ├── ArchitectureAnalyzer  — layers, entry points, dependency graph
+  ├── ConventionAnalyzer    — file/class naming patterns
+  └── FilePurposeAnalyzer   — file role classification
+
+Output Generators
+  ├── Markdown              — project_structure.md (analyze command)
+  ├── ClaudeMdGenerator     — CLAUDE.md for AI agents
+  ├── AiContextGenerator    — .ai-context/ JSON files
+  └── McpProjectServer      — MCP server with 5 tools
+```
+
+All analyzers implement the `FileAnalyzer` interface and receive pre-parsed data from the pipeline. You can build custom analyzers:
+
+```dart
+import 'dart:io';
+import 'package:analyzer/dart/ast/ast.dart';
+import 'package:flutter_project_structure/flutter_project_structure.dart';
+
+class MyCustomAnalyzer implements FileAnalyzer {
+  @override
+  void analyzeFile(File file, String content, CompilationUnit? compilationUnit) {
+    // Your analysis logic here
+  }
 }
 ```
 

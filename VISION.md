@@ -175,17 +175,16 @@ bin/
 ## New Dependencies (v2.0.0)
 
 ```yaml
-yaml: ^3.1.0           # parsing pubspec.yaml / melos.yaml
-json_rpc_2: ^3.0.0     # MCP server JSON-RPC protocol
-stream_channel: ^2.1.0  # required by json_rpc_2
+yaml: ^3.1.3           # parsing pubspec.yaml / melos.yaml
+mcp_dart: ^2.1.0       # MCP server protocol (official Dart Labs SDK)
 watcher: ^1.1.0         # --watch mode for MCP server
 ```
 
 ---
 
-## Current State (v1.0.3)
+## Current State (v2.0.0)
 
-Shipped with:
+All 6 phases implemented and shipped:
 - Project structure visualization (markdown tree with file icons)
 - Path comments injected into Dart files
 - Import mapping per file (collapsible sections)
@@ -193,8 +192,13 @@ Shipped with:
 - TODO/FIXME comment tracking with line numbers
 - Package dependency analysis
 - Code metrics (classes, methods, comment ratio)
-- CLI with feature flags (--file-stats, --todo-comments, etc.)
+- CLI with feature flags and CommandRunner subcommands
 - Programmatic API (FlutterProjectStructure class)
+- FileAnalyzer interface with single-pass AnalysisPipeline
+- 6 new analyzers (ProjectType, Framework, Architecture, Convention, FilePurpose, MetricsAggregator)
+- ClaudeMdGenerator (CLAUDE.md) and AiContextGenerator (.ai-context/ JSON)
+- MCP server with 5 tools and --watch mode (built on mcp_dart SDK)
+- `runAnalysis()` read-only method returning ProjectContext
 - Published on pub.dev: https://pub.dev/packages/flutter_project_structure
 
 ---

@@ -1,15 +1,20 @@
 // lib/src/todo_comments.dart
+import 'dart:convert';
 import 'dart:io';
 
+import 'package:analyzer/dart/ast/ast.dart';
 import 'package:path/path.dart' as path;
 
+import 'file_analyzer.dart';
+
 /// Finds and stores TODO and FIXME comments in Dart files.
-class TodoComments {
+class TodoComments implements FileAnalyzer {
   final Map<String, List<String>> todoComments = {};
 
-  /// Finds TODO and FIXME comments in a single Dart file.
-  void findTodoComments(File file) {
-    final lines = file.readAsLinesSync();
+  @override
+  void analyzeFile(
+      File file, String content, CompilationUnit? compilationUnit) {
+    final lines = LineSplitter.split(content).toList();
     final relativePath = path.join('lib',
         path.relative(file.path, from: path.dirname(path.dirname(file.path))));
 
@@ -21,6 +26,13 @@ class TodoComments {
             .add('Line ${i + 1}: $line');
       }
     }
+  }
+
+  /// Finds TODO and FIXME comments in a single Dart file.
+  @Deprecated('Use analyzeFile instead')
+  void findTodoComments(File file) {
+    final content = file.readAsStringSync();
+    analyzeFile(file, content, null);
   }
 
   @override

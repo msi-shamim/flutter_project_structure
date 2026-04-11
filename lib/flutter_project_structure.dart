@@ -4,11 +4,34 @@ library;
 import 'dart:io';
 
 import 'package:flutter_project_structure/src/add_path_comments.dart';
+import 'package:flutter_project_structure/src/analysis_pipeline.dart';
+import 'package:flutter_project_structure/src/architecture_analyzer.dart';
 import 'package:flutter_project_structure/src/code_metrics.dart';
+import 'package:flutter_project_structure/src/convention_analyzer.dart';
 import 'package:flutter_project_structure/src/dependency_analysis.dart';
+import 'package:flutter_project_structure/src/file_analyzer.dart';
+import 'package:flutter_project_structure/src/file_purpose_analyzer.dart';
 import 'package:flutter_project_structure/src/file_statistics.dart';
+import 'package:flutter_project_structure/src/framework_detector.dart';
+import 'package:flutter_project_structure/src/metrics_aggregator.dart';
+import 'package:flutter_project_structure/src/project_context.dart';
+import 'package:flutter_project_structure/src/project_type_detector.dart';
 import 'package:flutter_project_structure/src/todo_comments.dart';
 import 'package:path/path.dart' as path;
+import 'package:yaml/yaml.dart';
+
+export 'src/analysis_pipeline.dart';
+export 'src/architecture_analyzer.dart';
+export 'src/convention_analyzer.dart';
+export 'src/file_analyzer.dart';
+export 'src/file_purpose_analyzer.dart';
+export 'src/framework_detector.dart';
+export 'src/generators/ai_context_generator.dart';
+export 'src/generators/claude_md_generator.dart';
+export 'src/generators/mcp_server.dart';
+export 'src/metrics_aggregator.dart';
+export 'src/project_context.dart';
+export 'src/project_type_detector.dart';
 
 /// Main class for generating the Flutter project structure.
 class FlutterProjectStructure {
@@ -20,6 +43,12 @@ class FlutterProjectStructure {
   /// [includeTodoComments]: Whether to include TODO and FIXME comments (default: true).
   /// [includeDependencyAnalysis]: Whether to include dependency analysis (default: true).
   /// [includeCodeMetrics]: Whether to include code metrics (default: true).
+  /// [includeProjectType]: Whether to detect project type (default: true).
+  /// [includeFrameworkDetection]: Whether to detect frameworks (default: true).
+  /// [includeArchitecture]: Whether to analyze architecture (default: true).
+  /// [includeConventions]: Whether to analyze naming conventions (default: true).
+  /// [includeFilePurpose]: Whether to classify file purposes (default: true).
+  /// [includeMetricsAggregation]: Whether to compute aggregated metrics (default: true).
   FlutterProjectStructure({
     this.rootDir = 'lib',
     this.outputFile = 'project_structure.md',
@@ -27,6 +56,12 @@ class FlutterProjectStructure {
     this.includeTodoComments = true,
     this.includeDependencyAnalysis = true,
     this.includeCodeMetrics = true,
+    this.includeProjectType = true,
+    this.includeFrameworkDetection = true,
+    this.includeArchitecture = true,
+    this.includeConventions = true,
+    this.includeFilePurpose = true,
+    this.includeMetricsAggregation = true,
   });
 
   final String rootDir;
@@ -35,43 +70,195 @@ class FlutterProjectStructure {
   final bool includeTodoComments;
   final bool includeDependencyAnalysis;
   final bool includeCodeMetrics;
+  final bool includeProjectType;
+  final bool includeFrameworkDetection;
+  final bool includeArchitecture;
+  final bool includeConventions;
+  final bool includeFilePurpose;
+  final bool includeMetricsAggregation;
 
   late final FileStatistics _fileStats;
   late final TodoComments _todoComments;
   late final DependencyAnalysis _dependencyAnalysis;
   late final CodeMetrics _codeMetrics;
+  late final ProjectTypeDetector _projectTypeDetector;
+  late final FrameworkDetector _frameworkDetector;
+  late final ArchitectureAnalyzer _architectureAnalyzer;
+  late final ConventionAnalyzer _conventionAnalyzer;
+  late final FilePurposeAnalyzer _filePurposeAnalyzer;
+  late final MetricsAggregator _metricsAggregator;
+  late final AnalysisPipeline _pipeline;
 
-  /// Generates the project structure and writes it to the output file.
-  void generate() {
+  /// Runs analysis on the project and returns a populated [ProjectContext].
+  ///
+  /// This is a read-only operation — it does NOT modify source files
+  /// (no path comments are added). Use this for generators like
+  /// ClaudeMdGenerator and AiContextGenerator.
+  ProjectContext? runAnalysis() {
+    return _runAnalysis(modifyFiles: false);
+  }
+
+  /// Generates the project structure markdown and returns it as a string.
+  ///
+  /// This is a read-only operation — it does NOT modify source files.
+  /// Use this for MCP tools or programmatic access to the full markdown.
+  String? generateMarkdown() {
     final libDir = Directory(rootDir);
     if (!libDir.existsSync()) {
       print("Error: '$rootDir' directory not found.");
-      return;
+      return null;
     }
 
-    _fileStats = FileStatistics();
-    _todoComments = TodoComments();
-    _dependencyAnalysis = DependencyAnalysis();
-    _codeMetrics = CodeMetrics();
+    _initializeAnalyzers();
 
     final projectStructure = StringBuffer();
     projectStructure.writeln('# Project Structure\n');
+    _processDirectory(libDir, projectStructure, 0, modifyFiles: false);
 
-    _processDirectory(libDir, projectStructure, 0);
+    if (includeMetricsAggregation) _metricsAggregator.aggregate();
 
+    if (includeProjectType) _addProjectType(projectStructure);
+    if (includeFrameworkDetection) _addFrameworkDetection(projectStructure);
+    if (includeArchitecture) _addArchitecture(projectStructure);
     if (includeFileStats) _addProjectStatistics(projectStructure);
     if (includeTodoComments) _addTodoComments(projectStructure);
     if (includeDependencyAnalysis) _addDependencyAnalysis(projectStructure);
     if (includeCodeMetrics) _addCodeMetrics(projectStructure);
+    if (includeConventions) _addConventions(projectStructure);
+    if (includeFilePurpose) _addFilePurpose(projectStructure);
+    if (includeMetricsAggregation) _addMetricsAggregation(projectStructure);
+
+    return projectStructure.toString();
+  }
+
+  /// Generates the project structure markdown, writes it to the output file,
+  /// injects path comments into source files, and returns a [ProjectContext].
+  ///
+  /// This is the core operation — every CLI command calls this to ensure
+  /// path comments and project_structure.md are always produced as baseline.
+  ProjectContext? generate() {
+    final libDir = Directory(rootDir);
+    if (!libDir.existsSync()) {
+      print("Error: '$rootDir' directory not found.");
+      return null;
+    }
+
+    _initializeAnalyzers();
+
+    // Build markdown tree + run pipeline + modify files in one pass
+    final projectStructure = StringBuffer();
+    projectStructure.writeln('# Project Structure\n');
+    _processDirectory(libDir, projectStructure, 0, modifyFiles: true);
+
+    // Post-pipeline aggregation
+    if (includeMetricsAggregation) _metricsAggregator.aggregate();
+
+    // Append analysis sections
+    if (includeProjectType) _addProjectType(projectStructure);
+    if (includeFrameworkDetection) _addFrameworkDetection(projectStructure);
+    if (includeArchitecture) _addArchitecture(projectStructure);
+    if (includeFileStats) _addProjectStatistics(projectStructure);
+    if (includeTodoComments) _addTodoComments(projectStructure);
+    if (includeDependencyAnalysis) _addDependencyAnalysis(projectStructure);
+    if (includeCodeMetrics) _addCodeMetrics(projectStructure);
+    if (includeConventions) _addConventions(projectStructure);
+    if (includeFilePurpose) _addFilePurpose(projectStructure);
+    if (includeMetricsAggregation) _addMetricsAggregation(projectStructure);
 
     File(outputFile).writeAsStringSync(projectStructure.toString());
     print('Finished processing files.');
     print('Project structure written to $outputFile');
+
+    return _buildProjectContext();
+  }
+
+  ProjectContext? _runAnalysis({required bool modifyFiles}) {
+    final libDir = Directory(rootDir);
+    if (!libDir.existsSync()) {
+      print("Error: '$rootDir' directory not found.");
+      return null;
+    }
+
+    _initializeAnalyzers();
+
+    // Process all files
+    final discardBuffer = StringBuffer();
+    _processDirectory(libDir, discardBuffer, 0, modifyFiles: modifyFiles);
+
+    // Post-pipeline aggregation
+    if (includeMetricsAggregation) _metricsAggregator.aggregate();
+
+    return _buildProjectContext();
+  }
+
+  void _initializeAnalyzers() {
+    // Parse pubspec.yaml once for analyzers that need it
+    final projectRoot =
+        path.dirname(path.normalize(path.absolute(rootDir)));
+    YamlMap? pubspecMap;
+    final pubspecFile = File(path.join(projectRoot, 'pubspec.yaml'));
+    if (pubspecFile.existsSync()) {
+      pubspecMap = loadYaml(pubspecFile.readAsStringSync()) as YamlMap?;
+    }
+
+    // Instantiate all analyzers
+    _fileStats = FileStatistics();
+    _todoComments = TodoComments();
+    _dependencyAnalysis = DependencyAnalysis();
+    _codeMetrics = CodeMetrics();
+    _projectTypeDetector = ProjectTypeDetector(pubspecMap);
+    _frameworkDetector = FrameworkDetector(pubspecMap);
+    _architectureAnalyzer = ArchitectureAnalyzer();
+    _conventionAnalyzer = ConventionAnalyzer();
+    _filePurposeAnalyzer = FilePurposeAnalyzer();
+    _metricsAggregator = MetricsAggregator(_codeMetrics);
+
+    // Run pre-pipeline detection
+    if (includeProjectType) _projectTypeDetector.detect(projectRoot);
+    if (includeFrameworkDetection) _frameworkDetector.detectFromPubspec();
+
+    // Build pipeline with enabled analyzers
+    final analyzers = <FileAnalyzer>[
+      if (includeFileStats) _fileStats,
+      if (includeTodoComments) _todoComments,
+      if (includeDependencyAnalysis) _dependencyAnalysis,
+      if (includeCodeMetrics) _codeMetrics,
+      if (includeFrameworkDetection) _frameworkDetector,
+      if (includeArchitecture) _architectureAnalyzer,
+      if (includeConventions) _conventionAnalyzer,
+      if (includeFilePurpose) _filePurposeAnalyzer,
+    ];
+    _pipeline = AnalysisPipeline(analyzers);
+  }
+
+  String get _projectRoot =>
+      path.dirname(path.normalize(path.absolute(rootDir)));
+
+  ProjectContext _buildProjectContext() {
+    return ProjectContext(
+      rootDir: rootDir,
+      projectRoot: _projectRoot,
+      fileStatistics: _fileStats,
+      todoComments: _todoComments,
+      dependencyAnalysis: _dependencyAnalysis,
+      codeMetrics: _codeMetrics,
+      projectTypeDetector: includeProjectType ? _projectTypeDetector : null,
+      frameworkDetector:
+          includeFrameworkDetection ? _frameworkDetector : null,
+      architectureAnalyzer:
+          includeArchitecture ? _architectureAnalyzer : null,
+      conventionAnalyzer: includeConventions ? _conventionAnalyzer : null,
+      filePurposeAnalyzer:
+          includeFilePurpose ? _filePurposeAnalyzer : null,
+      metricsAggregator:
+          includeMetricsAggregation ? _metricsAggregator : null,
+    );
   }
 
   /// Recursively processes directories and files, building the project structure.
   void _processDirectory(
-      Directory dir, StringBuffer projectStructure, int level) {
+      Directory dir, StringBuffer projectStructure, int level,
+      {bool modifyFiles = true}) {
     final entities = dir.listSync()..sort((a, b) => a.path.compareTo(b.path));
 
     for (final entity in entities) {
@@ -79,43 +266,75 @@ class FlutterProjectStructure {
       final indent = '  ' * level;
 
       if (entity is File && entity.path.endsWith('.dart')) {
-        print('Processing file: ${entity.path}');
-        addPathComment(entity);
+        // Skip macOS resource fork files and other non-Dart metadata
+        if (path.basename(entity.path).startsWith('._')) continue;
+        if (modifyFiles) {
+          print('Processing file: ${entity.path}');
+          addPathComment(entity);
+        }
         projectStructure.writeln('$indent- 📄 `$relativePath`');
-        listImports(entity, projectStructure, level + 1);
-        _fileStats.updateFileStats(entity);
-        _todoComments.findTodoComments(entity);
-        _dependencyAnalysis.analyzeDependencies(entity);
-        _codeMetrics.analyzeFile(entity);
+        if (modifyFiles) {
+          listImports(entity, projectStructure, level + 1);
+        }
+        _pipeline.processFile(entity);
       } else if (entity is Directory) {
+        // Skip macOS resource fork metadata directories
+        if (path.basename(entity.path).startsWith('._')) continue;
         projectStructure
             .writeln('$indent- 📁 **${path.basename(entity.path)}**');
-        _processDirectory(entity, projectStructure, level + 1);
+        _processDirectory(entity, projectStructure, level + 1,
+            modifyFiles: modifyFiles);
       }
     }
   }
 
-  /// Adds project statistics to the project structure.
+  void _addProjectType(StringBuffer projectStructure) {
+    projectStructure.writeln('\n## Project Type\n');
+    projectStructure.writeln(_projectTypeDetector.toString());
+  }
+
+  void _addFrameworkDetection(StringBuffer projectStructure) {
+    projectStructure.writeln('\n## Detected Frameworks\n');
+    projectStructure.writeln(_frameworkDetector.toString());
+  }
+
+  void _addArchitecture(StringBuffer projectStructure) {
+    projectStructure.writeln('\n## Architecture\n');
+    projectStructure.writeln(_architectureAnalyzer.toString());
+  }
+
   void _addProjectStatistics(StringBuffer projectStructure) {
     projectStructure.writeln('\n## Project Statistics\n');
     projectStructure.writeln(_fileStats.toString());
   }
 
-  /// Adds TODO and FIXME comments to the project structure.
   void _addTodoComments(StringBuffer projectStructure) {
     projectStructure.writeln('\n## TODO and FIXME Comments\n');
     projectStructure.writeln(_todoComments.toString());
   }
 
-  /// Adds dependency analysis to the project structure.
   void _addDependencyAnalysis(StringBuffer projectStructure) {
     projectStructure.writeln('\n## Dependency Analysis\n');
     projectStructure.writeln(_dependencyAnalysis.toString());
   }
 
-  /// Adds code metrics to the project structure.
   void _addCodeMetrics(StringBuffer projectStructure) {
     projectStructure.writeln('\n## Code Metrics\n');
     projectStructure.writeln(_codeMetrics.toString());
+  }
+
+  void _addConventions(StringBuffer projectStructure) {
+    projectStructure.writeln('\n## Naming Conventions\n');
+    projectStructure.writeln(_conventionAnalyzer.toString());
+  }
+
+  void _addFilePurpose(StringBuffer projectStructure) {
+    projectStructure.writeln('\n## File Purposes\n');
+    projectStructure.writeln(_filePurposeAnalyzer.toString());
+  }
+
+  void _addMetricsAggregation(StringBuffer projectStructure) {
+    projectStructure.writeln('\n## Aggregated Metrics\n');
+    projectStructure.writeln(_metricsAggregator.toString());
   }
 }

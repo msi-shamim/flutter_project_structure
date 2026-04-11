@@ -1,10 +1,14 @@
 // lib/src/file_statistics.dart
+import 'dart:convert';
 import 'dart:io';
 
+import 'package:analyzer/dart/ast/ast.dart';
 import 'package:path/path.dart' as path;
 
+import 'file_analyzer.dart';
+
 /// Collects and stores statistics about Dart files in the project.
-class FileStatistics {
+class FileStatistics implements FileAnalyzer {
   int totalFiles = 0;
   int dartFiles = 0;
   int totalDirectories = 0;
@@ -14,12 +18,12 @@ class FileStatistics {
   String smallestFile = '';
   int smallestFileLines = 0;
 
-  /// Updates statistics for a single Dart file.
-  void updateFileStats(File file) {
+  @override
+  void analyzeFile(
+      File file, String content, CompilationUnit? compilationUnit) {
     totalFiles++;
     dartFiles++;
-    final lines = file.readAsLinesSync();
-    final lineCount = lines.length;
+    final lineCount = LineSplitter.split(content).length;
     totalLines += lineCount;
 
     final relativePath = path.join('lib',
@@ -34,6 +38,13 @@ class FileStatistics {
       smallestFileLines = lineCount;
       smallestFile = relativePath;
     }
+  }
+
+  /// Updates statistics for a single Dart file.
+  @Deprecated('Use analyzeFile instead')
+  void updateFileStats(File file) {
+    final content = file.readAsStringSync();
+    analyzeFile(file, content, null);
   }
 
   @override
