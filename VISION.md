@@ -1,6 +1,6 @@
 # flutter_project_structure — Product Vision
 
-> Every AI agent understands your project instantly. No matter how big.
+> One command. Every AI agent understands your project instantly. No matter how big.
 
 ---
 
@@ -15,199 +15,141 @@ Developers use AI agents (Claude Code, Cursor, Copilot) daily, but these agents 
 
 ## The Solution
 
-`flutter_project_structure` becomes the bridge between codebases and AI agents. One command generates everything an AI needs to understand any project:
+`flutter_project_structure` bridges your codebase and AI agents. One command makes your entire project AI-ready:
 
 ```bash
-flutter_project_structure ai-context
+dart run flutter_project_structure ai-context
 ```
+
+That single command:
+1. Adds `// Path: lib/src/...` comments to every Dart file (AI knows where every file sits)
+2. Generates `project_structure.md` (comprehensive directory tree with full analysis)
+3. Generates `CLAUDE.md` (<20KB AI-optimized summary agents read automatically)
+4. Generates `.ai-context/` (6 structured JSON files for programmatic querying)
+
+The result: your AI agent starts every session already understanding your project's architecture, frameworks, conventions, and file purposes.
 
 ---
 
-## v2.0.0 — AI Agent Integration
+## v2.0.0 — What Ships
 
-### Three New Outputs
+### The Baseline (every command produces this)
 
-#### 1. `CLAUDE.md` — Auto-Generated AI Context File
-Goes in project root. Claude Code, Cursor, and similar tools read this automatically on every conversation.
+No matter which command you run — `analyze`, `claude-md`, `ai-context`, or `mcp-server` — you always get:
 
-Contains:
-- Project type (monorepo / single app / package / plugin)
-- Tech stack detection (GetX, Riverpod, Bloc, Dio, etc.)
-- Architecture summary (layers, entry points, dependency graph)
-- Directory structure (compressed, 2 levels deep with file counts)
-- Detected conventions and rules
-- Package dependencies
-- Technical debt summary
+- **Path comments** in every Dart file (`// Path: lib/module/auth/login_screen.dart`)
+- **project_structure.md** with directory tree + all analysis sections
 
-Size target: <4KB small projects, <20KB enterprise monorepos.
+This is the core value of the package. The specific command just adds its output on top.
 
-#### 2. `.ai-context/` — Structured JSON Directory
-Machine-readable context for programmatic consumption:
+### Output Formats
+
+#### 1. `project_structure.md` — The Complete Reference
+The most comprehensive output. Contains the full directory tree with file icons, collapsible imports, and all 10 analysis sections (project type, frameworks, architecture, statistics, TODOs, dependencies, code metrics, conventions, file purposes, aggregated metrics).
+
+For a 384-file Flutter app, this generates ~250KB of detailed analysis. Too large for AI to consume at once, but perfect as a reference that the MCP server can serve section-by-section.
+
+#### 2. `CLAUDE.md` — AI Agent Context File
+A compact, AI-optimized summary (<20KB) designed for AI agents to read at the start of every session. Contains:
+- Project type and tech stack
+- Architecture layers and entry points
+- Directory structure (compressed, 3 levels deep)
+- Naming conventions and patterns
+- Top 15 package dependencies by usage
+- Code health summary and technical debt
+
+Claude Code, Cursor, and similar tools read `CLAUDE.md` automatically from the project root.
+
+#### 3. `.ai-context/` — Structured JSON
+6 machine-readable files for programmatic consumption:
 
 ```
 .ai-context/
-├── architecture.json    # layers, dependency graph, entry points
-├── files.json           # every file with purpose, imports, public API
-├── patterns.json        # detected frameworks with usage details
-├── conventions.json     # naming rules with confidence levels
-├── metrics.json         # code health aggregates
-└── todos.json           # structured technical debt index
+  architecture.json    — project type, layers, dependency graph, entry points
+  files.json           — every file with purpose, LOC, classes, methods, comment ratio
+  patterns.json        — detected frameworks with file evidence
+  conventions.json     — naming patterns with counts
+  metrics.json         — aggregated code health
+  todos.json           — structured TODO/FIXME index
 ```
 
-#### 3. MCP Server — Live Query Interface
-Any AI agent connecting via MCP gets instant project understanding without reading source files:
+#### 4. MCP Server — Live Querying
+6 tools over stdio JSON-RPC for real-time AI agent queries:
 
-```bash
-flutter_project_structure mcp-server
-flutter_project_structure mcp-server --watch  # re-analyzes on file changes
-```
+| Tool | What it returns |
+|------|----------------|
+| `get_architecture` | Project type, layers, dependency graph, entry points |
+| `get_file_purpose(path)` | Purpose and metrics for a specific file |
+| `get_dependencies(package?)` | Package dependencies, optionally filtered |
+| `get_conventions` | Naming patterns and suffix adoption rates |
+| `get_todos(severity?)` | TODO/FIXME items, optionally filtered |
+| `get_project_structure(section?)` | Sections from project_structure.md on demand |
 
-5 tools exposed:
-- `get_architecture` — project structure, layers, dependency graph
-- `get_file_purpose(path)` — what a specific file does
-- `get_dependencies(package?)` — who depends on what
-- `get_conventions` — detected naming/coding patterns
-- `get_todos(severity?)` — technical debt index
+The `get_project_structure` tool solves the "too large for AI" problem — the agent first asks for a summary (section names + line counts), then drills into specific sections as needed.
+
+Optional `--watch` mode re-analyzes when `.dart` files change (2-second debounce).
 
 ---
 
-## Implementation Phases
+## Smart Detection
 
-### Phase 1: Foundation Refactoring
-**Goal:** Parse each file once (currently 3x), create shared analysis pipeline.
+### Framework Detection (3 strategies)
+1. **Pubspec scanning** — checks `dependencies` and `dev_dependencies` for known packages
+2. **Import analysis** — scans `import 'package:dio/dio.dart'` statements to count actual usage per file
+3. **AST superclass matching** — detects `extends Bloc`, `extends Cubit`, `extends GetxController`, etc.
 
-- Create `FileAnalyzer` abstract interface
-- Create `AnalysisPipeline` — single-pass file processing orchestrator
-- Create `ProjectContext` — aggregated results data class
-- Refactor 4 existing analyzers (FileStatistics, TodoComments, DependencyAnalysis, CodeMetrics) to implement FileAnalyzer and receive pre-parsed CompilationUnit
-- Refactor CLI to use `CommandRunner` with subcommands (backward compatible)
+Detects: GetX, Riverpod, Bloc/Cubit, Provider, Dio, GoRouter, AutoRoute, Freezed, Hive, Drift.
 
-**Verification:** Existing tests pass, `project_structure.md` output identical to v1.x.
+### Entry Point Detection
+Finds `main.dart`, `app.dart`, and environment variants common in Flutter projects:
+- `main_development.dart`
+- `main_staging.dart`
+- `main_production.dart`
+- Any `main_*.dart` file
 
-### Phase 2: New Analyzers
-All implement `FileAnalyzer` interface. Can be built independently.
+### Architecture Layer Mapping
+Maps 27+ directory names to architectural layers:
+- Domain layers: core, data, domain, presentation
+- Clean/MVVM/MVC: models, services, controllers, views, widgets, repositories, providers
+- BLoC pattern: blocs, cubits
+- Feature-based: screens, pages
+- Utilities: utils, helpers
 
-| Analyzer | Detects | How |
-|----------|---------|-----|
-| `ProjectTypeDetector` | Monorepo/app/package/plugin | Multiple pubspec.yaml, melos.yaml, flutter key |
-| `FrameworkDetector` | GetX/Riverpod/Bloc/Provider/etc | Pubspec deps + AST superclass checks |
-| `ArchitectureAnalyzer` | Layers, dependency graph, entry points | Directory naming + internal import graph |
-| `ConventionAnalyzer` | Naming patterns, file suffixes | Aggregate class/file name analysis |
-| `FilePurposeAnalyzer` | Each file's role (widget/model/service) | Directory context + class hierarchy |
-| `MetricsAggregator` | Health scores | Reuses existing metrics data |
-
-### Phase 3: Output Generators
-- `ClaudeMdGenerator` — generates `CLAUDE.md`
-- `AiContextGenerator` — generates `.ai-context/` directory with 6 JSON files
-
-### Phase 4: MCP Server
-- JSON-RPC 2.0 over stdio (standard MCP protocol)
-- 5 tools: get_architecture, get_file_purpose, get_dependencies, get_conventions, get_todos
-- Optional `--watch` mode: re-analyzes on file changes
-
-### Phase 5: CLI Commands
-```bash
-# Existing (backward compatible)
-flutter_project_structure
-flutter_project_structure --root-dir=lib --output=custom.md
-
-# New subcommands
-flutter_project_structure ai-context     # CLAUDE.md + .ai-context/
-flutter_project_structure claude-md      # CLAUDE.md only
-flutter_project_structure mcp-server     # Start MCP server
-flutter_project_structure mcp-server --watch
-```
-
-### Phase 6: Testing & Docs
-- Unit tests for each new analyzer
-- Integration tests on real Flutter projects
-- README.md, CHANGELOG.md, example/main.dart updated
-- Bump to v2.0.0, publish to pub.dev
+Builds a directed dependency graph showing which layers import from which.
 
 ---
 
-## File Structure (v2.0.0)
+## Implementation (All Completed)
 
-```
-lib/
-  flutter_project_structure.dart              # MODIFY — new exports, pipeline
-  src/
-    file_analyzer.dart                        # CREATE — abstract interface
-    analysis_pipeline.dart                    # CREATE — single-pass orchestrator
-    project_context.dart                      # CREATE — aggregated results
-    file_statistics.dart                      # MODIFY — implement FileAnalyzer
-    todo_comments.dart                        # MODIFY — implement FileAnalyzer
-    dependency_analysis.dart                  # MODIFY — implement FileAnalyzer
-    code_metrics.dart                         # MODIFY — implement FileAnalyzer
-    add_path_comments.dart                    # UNCHANGED
-    analyzers/
-      project_type_detector.dart              # CREATE
-      framework_detector.dart                 # CREATE
-      architecture_analyzer.dart              # CREATE
-      convention_analyzer.dart                # CREATE
-      file_purpose_analyzer.dart              # CREATE
-      metrics_aggregator.dart                 # CREATE
-    generators/
-      claude_md_generator.dart                # CREATE
-      ai_context_generator.dart               # CREATE
-      mcp_server.dart                         # CREATE
-    commands/
-      analyze_command.dart                    # CREATE
-      ai_context_command.dart                 # CREATE
-      claude_md_command.dart                  # CREATE
-      mcp_server_command.dart                 # CREATE
-bin/
-  flutter_project_structure.dart              # MODIFY — CommandRunner
-```
+| Phase | What | Status |
+|-------|------|--------|
+| 1 | FileAnalyzer interface, AnalysisPipeline, ProjectContext | Done |
+| 2 | 6 new analyzers (ProjectType, Framework, Architecture, Convention, FilePurpose, Metrics) | Done |
+| 3 | ClaudeMdGenerator, AiContextGenerator | Done |
+| 4 | MCP Server with 6 tools + watch mode | Done |
+| 5 | CLI commands (analyze, claude-md, ai-context, mcp-server) | Done |
+| 6 | All commands produce baseline (path comments + project_structure.md) | Done |
+| 7 | Testing (26 tests) + docs + verified against 384-file production app | Done |
 
 ---
 
 ## Key Design Decisions
 
-1. **Parse once** — each file parsed to AST once, shared across all analyzers (3x performance)
-2. **Backward compatible** — no subcommand = existing v1.x behavior
-3. **Size-managed outputs** — CLAUDE.md capped ~20KB, JSON paginated for large projects
-4. **MCP over stdio** — standard protocol, works with Claude Code, Cursor, any MCP client
-5. **Read-only AI commands** — ai-context and claude-md never modify source files
-
----
-
-## New Dependencies (v2.0.0)
-
-```yaml
-yaml: ^3.1.3           # parsing pubspec.yaml / melos.yaml
-mcp_dart: ^2.1.0       # MCP server protocol (official Dart Labs SDK)
-watcher: ^1.1.0         # --watch mode for MCP server
-```
-
----
-
-## Current State (v2.0.0)
-
-All 6 phases implemented and shipped:
-- Project structure visualization (markdown tree with file icons)
-- Path comments injected into Dart files
-- Import mapping per file (collapsible sections)
-- File statistics (total files, LOC, largest/smallest)
-- TODO/FIXME comment tracking with line numbers
-- Package dependency analysis
-- Code metrics (classes, methods, comment ratio)
-- CLI with feature flags and CommandRunner subcommands
-- Programmatic API (FlutterProjectStructure class)
-- FileAnalyzer interface with single-pass AnalysisPipeline
-- 6 new analyzers (ProjectType, Framework, Architecture, Convention, FilePurpose, MetricsAggregator)
-- ClaudeMdGenerator (CLAUDE.md) and AiContextGenerator (.ai-context/ JSON)
-- MCP server with 5 tools and --watch mode (built on mcp_dart SDK)
-- `runAnalysis()` read-only method returning ProjectContext
-- Published on pub.dev: https://pub.dev/packages/flutter_project_structure
+1. **Parse once** — each file parsed to AST once, shared across all analyzers (3x faster than per-analyzer scanning)
+2. **Every command = full setup** — no matter which command you run, you always get path comments + project_structure.md as baseline
+3. **`generate()` returns ProjectContext** — single call gives you file modifications + markdown output + analysis data for generators (no double-scanning)
+4. **Backward compatible** — no subcommand = v1.x `analyze` behavior
+5. **Size-managed outputs** — CLAUDE.md stays under 20KB; MCP serves project_structure.md section-by-section
+6. **MCP over stdio** — standard protocol, works with Claude Code, Cursor, any MCP client
+7. **Graceful error handling** — skips non-UTF-8 files (macOS metadata, binary files) instead of crashing
 
 ---
 
 ## The Bigger Picture
 
 ```
-flutter_monorepo              → Creates the project (Day 0)
-flutter_project_structure     → Keeps AI agents informed as it grows (Day 1 → Day 1000)
+flutter_monorepo              -> Creates the project (Day 0)
+flutter_project_structure     -> Keeps AI agents informed as it grows (Day 1 -> Day 1000)
 ```
 
 Together, these two tools cover the full Flutter developer lifecycle — from scaffolding to ongoing AI-assisted development. No other pub.dev packages do this.
