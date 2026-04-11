@@ -5,7 +5,7 @@ import 'package:flutter_project_structure/flutter_project_structure.dart';
 import 'package:path/path.dart' as path;
 
 void main() async {
-  print('Flutter Project Structure v2.0.0 Example\n');
+  print('Flutter Project Structure v2.0.1 Example\n');
 
   // Create a sample project structure
   final projectDir = await createSampleProject();

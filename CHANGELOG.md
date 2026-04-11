@@ -2,7 +2,7 @@
 
 - Broadened `analyzer` dependency to support versions 7.x through 12.x
 - Optimized pubspec description for pub.dev scoring
-- Expanded test suite to 38 tests covering all v2.0.0 features
+- Expanded test suite to 38 tests covering all v2.0.1 features
 
 ## 2.0.0 — AI Agent Integration
 
