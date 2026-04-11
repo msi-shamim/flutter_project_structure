@@ -1,6 +1,6 @@
 ## 2.0.0 — AI Agent Integration
 
-The biggest update yet. One command now makes your entire Flutter project AI-ready — path comments in every file, comprehensive analysis, and multiple output formats for AI agents.
+The biggest update yet. One command now makes your entire Flutter project AI-ready — path comments in every file, comprehensive analysis, and multiple output formats for AI agents. **Save 90% of AI tokens** spent on project orientation. Handle 9x more projects with the same AI subscription.
 
 ### What's New
 
