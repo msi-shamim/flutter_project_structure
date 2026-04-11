@@ -44,6 +44,19 @@ class TestClass {
       expect(File('${tempDir.path}/structure.md').existsSync(), isTrue);
     });
 
+    test('generate returns ProjectContext', () {
+      final structure = FlutterProjectStructure(
+        rootDir: '${tempDir.path}/lib',
+        outputFile: '${tempDir.path}/structure.md',
+      );
+
+      final context = structure.generate();
+
+      expect(context, isNotNull);
+      expect(context!.fileStatistics.totalFiles, greaterThan(0));
+      expect(context.rootDir, '${tempDir.path}/lib');
+    });
+
     test('generate adds path comments to Dart files', () {
       final structure = FlutterProjectStructure(
         rootDir: '${tempDir.path}/lib',
@@ -140,6 +153,71 @@ class TestClass {
     });
   });
 
+  group('generateMarkdown', () {
+    late Directory tempDir;
+
+    setUp(() {
+      tempDir = Directory.systemTemp
+          .createTempSync('flutter_project_structure_md_');
+      Directory('${tempDir.path}/lib').createSync();
+      File('${tempDir.path}/lib/main.dart')
+          .writeAsStringSync('void main() {}');
+    });
+
+    tearDown(() {
+      tempDir.deleteSync(recursive: true);
+    });
+
+    test('returns markdown string without writing files', () {
+      final structure = FlutterProjectStructure(
+        rootDir: '${tempDir.path}/lib',
+        outputFile: '${tempDir.path}/structure.md',
+      );
+
+      final markdown = structure.generateMarkdown();
+
+      expect(markdown, isNotNull);
+      expect(markdown, contains('# Project Structure'));
+      // Should NOT create the output file
+      expect(File('${tempDir.path}/structure.md').existsSync(), isFalse);
+    });
+
+    test('does not modify source files', () {
+      final file = File('${tempDir.path}/lib/main.dart');
+      final original = file.readAsStringSync();
+
+      final structure = FlutterProjectStructure(
+        rootDir: '${tempDir.path}/lib',
+      );
+      structure.generateMarkdown();
+
+      expect(file.readAsStringSync(), equals(original));
+    });
+
+    test('contains all enabled analysis sections', () {
+      final structure = FlutterProjectStructure(
+        rootDir: '${tempDir.path}/lib',
+      );
+
+      final markdown = structure.generateMarkdown()!;
+
+      expect(markdown, contains('## Project Type'));
+      expect(markdown, contains('## Project Statistics'));
+      expect(markdown, contains('## Code Metrics'));
+      expect(markdown, contains('## Aggregated Metrics'));
+    });
+
+    test('returns null for non-existent directory', () {
+      final structure = FlutterProjectStructure(
+        rootDir: '${tempDir.path}/nonexistent',
+      );
+
+      final markdown = structure.generateMarkdown();
+
+      expect(markdown, isNull);
+    });
+  });
+
   group('Phase 2 Analyzers', () {
     late Directory tempDir;
 
@@ -219,6 +297,59 @@ class MyBloc extends Bloc {}
       expect(content.contains('## Detected Frameworks'), isTrue);
       expect(content.contains('Bloc/Cubit'), isTrue);
       expect(content.contains('Dio'), isTrue);
+    });
+
+    test('import-based framework detection finds file evidence', () {
+      File('${tempDir.path}/pubspec.yaml').writeAsStringSync('''
+name: test_app
+dependencies:
+  dio: ^5.0.0
+  go_router: ^14.0.0
+''');
+      File('${tempDir.path}/lib/main.dart').writeAsStringSync('''
+import 'package:dio/dio.dart';
+import 'package:go_router/go_router.dart';
+
+class ApiClient {
+  final Dio dio = Dio();
+}
+''');
+
+      final structure = FlutterProjectStructure(
+        rootDir: '${tempDir.path}/lib',
+      );
+      final context = structure.runAnalysis()!;
+      final frameworks = context.frameworkDetector!.detectedFrameworks;
+
+      expect(frameworks['Dio']!.fileEvidence.length, greaterThan(0),
+          reason: 'Dio should have file evidence from import detection');
+      expect(frameworks['GoRouter']!.fileEvidence.length, greaterThan(0),
+          reason: 'GoRouter should have file evidence from import detection');
+    });
+
+    test('detects main_*.dart as entry points', () {
+      File('${tempDir.path}/lib/main.dart')
+          .writeAsStringSync('void main() {}');
+      File('${tempDir.path}/lib/main_development.dart')
+          .writeAsStringSync('void main() {}');
+      File('${tempDir.path}/lib/main_staging.dart')
+          .writeAsStringSync('void main() {}');
+      File('${tempDir.path}/lib/main_production.dart')
+          .writeAsStringSync('void main() {}');
+
+      final structure = FlutterProjectStructure(
+        rootDir: '${tempDir.path}/lib',
+      );
+      final context = structure.runAnalysis()!;
+      final entryPoints = context.architectureAnalyzer!.entryPoints;
+
+      expect(entryPoints.length, equals(4));
+      expect(entryPoints.any((e) => e.contains('main.dart')), isTrue);
+      expect(
+          entryPoints.any((e) => e.contains('main_development.dart')), isTrue);
+      expect(entryPoints.any((e) => e.contains('main_staging.dart')), isTrue);
+      expect(
+          entryPoints.any((e) => e.contains('main_production.dart')), isTrue);
     });
 
     test('generate detects architectural layers', () {
@@ -454,7 +585,30 @@ class MyApp {}
       expect(todos['totalCount'], greaterThan(0));
     });
 
-    test('generate still works with path comments after refactoring', () {
+    test('generate returns context usable by generators', () {
+      final structure = FlutterProjectStructure(
+        rootDir: '${tempDir.path}/lib',
+        outputFile: '${tempDir.path}/structure.md',
+      );
+
+      // generate() should return context for use with generators
+      final context = structure.generate();
+
+      expect(context, isNotNull);
+      expect(File('${tempDir.path}/structure.md').existsSync(), isTrue);
+
+      // Use returned context with ClaudeMdGenerator
+      final claudePath = '${tempDir.path}/CLAUDE.md';
+      ClaudeMdGenerator(context!).generate(outputPath: claudePath);
+      expect(File(claudePath).existsSync(), isTrue);
+
+      // Use returned context with AiContextGenerator
+      final aiDir = '${tempDir.path}/.ai-context';
+      AiContextGenerator(context).generate(outputDir: aiDir);
+      expect(Directory(aiDir).existsSync(), isTrue);
+    });
+
+    test('generate adds path comments and writes structure', () {
       final file = File('${tempDir.path}/lib/main.dart');
 
       final structure = FlutterProjectStructure(
@@ -467,6 +621,73 @@ class MyApp {}
       expect(content.startsWith('// Path:'), isTrue,
           reason: 'generate() should still add path comments');
       expect(File('${tempDir.path}/structure.md').existsSync(), isTrue);
+    });
+  });
+
+  group('._* file filtering', () {
+    late Directory tempDir;
+
+    setUp(() {
+      tempDir = Directory.systemTemp
+          .createTempSync('flutter_project_structure_filter_');
+      Directory('${tempDir.path}/lib').createSync();
+    });
+
+    tearDown(() {
+      tempDir.deleteSync(recursive: true);
+    });
+
+    test('skips macOS ._* metadata files during analysis', () {
+      File('${tempDir.path}/lib/main.dart')
+          .writeAsStringSync('void main() {}');
+      // Create a fake macOS metadata file (binary content)
+      File('${tempDir.path}/lib/._main.dart')
+          .writeAsBytesSync([0x00, 0x05, 0x16, 0x07, 0x00, 0x02, 0x00]);
+
+      final structure = FlutterProjectStructure(
+        rootDir: '${tempDir.path}/lib',
+        outputFile: '${tempDir.path}/structure.md',
+      );
+
+      // Should not crash on binary ._* files
+      final context = structure.generate();
+
+      expect(context, isNotNull);
+      expect(context!.fileStatistics.totalFiles, equals(1),
+          reason: '._* files should not be counted');
+    });
+
+    test('excludes ._* files from markdown output', () {
+      File('${tempDir.path}/lib/main.dart')
+          .writeAsStringSync('void main() {}');
+      File('${tempDir.path}/lib/._main.dart')
+          .writeAsBytesSync([0x00, 0x05, 0x16, 0x07]);
+
+      final structure = FlutterProjectStructure(
+        rootDir: '${tempDir.path}/lib',
+        outputFile: '${tempDir.path}/structure.md',
+      );
+      structure.generate();
+
+      final content = File('${tempDir.path}/structure.md').readAsStringSync();
+      expect(content.contains('._main.dart'), isFalse,
+          reason: '._* files should not appear in markdown output');
+    });
+
+    test('excludes ._* files from CLAUDE.md directory tree', () {
+      File('${tempDir.path}/lib/main.dart')
+          .writeAsStringSync('void main() {}');
+      File('${tempDir.path}/lib/._main.dart')
+          .writeAsBytesSync([0x00, 0x05, 0x16, 0x07]);
+
+      final structure = FlutterProjectStructure(
+        rootDir: '${tempDir.path}/lib',
+      );
+      final context = structure.runAnalysis()!;
+      final claudeMd = ClaudeMdGenerator(context).render();
+
+      expect(claudeMd.contains('._main.dart'), isFalse,
+          reason: '._* files should not appear in CLAUDE.md');
     });
   });
 
@@ -533,6 +754,16 @@ flutter:
 
       final content = File('${tempDir.path}/structure.md').readAsStringSync();
       expect(content.contains('No TODO or FIXME comments found.'), isTrue);
+    });
+
+    test('generate returns null for non-existent directory', () {
+      final structure = FlutterProjectStructure(
+        rootDir: '${tempDir.path}/nonexistent',
+        outputFile: '${tempDir.path}/structure.md',
+      );
+
+      final context = structure.generate();
+      expect(context, isNull);
     });
 
     test('runAnalysis returns correct ProjectContext fields', () {
