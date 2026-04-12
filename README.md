@@ -1,5 +1,12 @@
 # Flutter Project Structure
 
+[![pub package](https://img.shields.io/pub/v/flutter_project_structure.svg)](https://pub.dev/packages/flutter_project_structure)
+[![pub points](https://img.shields.io/pub/points/flutter_project_structure)](https://pub.dev/packages/flutter_project_structure/score)
+[![likes](https://img.shields.io/pub/likes/flutter_project_structure)](https://pub.dev/packages/flutter_project_structure)
+[![popularity](https://img.shields.io/pub/popularity/flutter_project_structure)](https://pub.dev/packages/flutter_project_structure)
+[![license](https://img.shields.io/github/license/msi-shamim/flutter_project_structure)](https://github.com/msi-shamim/flutter_project_structure/blob/main/LICENSE)
+[![GitHub stars](https://img.shields.io/github/stars/msi-shamim/flutter_project_structure?style=social)](https://github.com/msi-shamim/flutter_project_structure)
+
 **Save 90% of AI tokens.** Run one command and every AI agent — Claude Code, Cursor, Copilot — instantly understands your project. No more wasting tokens on exploration. Handle **9x more projects** with the same AI subscription.
 
 A Dart package that makes your Flutter/Dart codebase AI-ready. Analyze, document, and visualize your project structure. Generate AI-friendly context files that eliminate the expensive "let me explore your codebase" phase that costs you thousands of tokens every session.
