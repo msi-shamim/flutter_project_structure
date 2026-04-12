@@ -1,3 +1,8 @@
+## 2.0.4
+
+- Fixed cross-version analyzer API compatibility (works with analyzer 7.x through 12.x)
+- Replaced `ClassDeclaration.name` and `NamedType.name2` with version-agnostic alternatives
+
 ## 2.0.3
 
 - Synced all version references across docs, example, and MCP server

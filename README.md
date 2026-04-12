@@ -88,7 +88,7 @@ The package runs once (or on each code change with `--watch`), costs zero AI tok
 - Package dependency analysis (AST-based import tracking)
 - Code metrics per file (classes, methods, comment ratio)
 
-### Smart Detection (v2.0.3)
+### Smart Detection (v2.0.4)
 - **Project Type** — monorepo, plugin, flutter_app, or dart_package
 - **10 Frameworks** — GetX, Riverpod, Bloc/Cubit, Provider, Dio, GoRouter, AutoRoute, Freezed, Hive, Drift (detected via pubspec + imports + AST superclass matching)
 - **Architecture Layers** — maps directories to layers (models, services, controllers, widgets, blocs, etc.) with dependency graph
@@ -113,7 +113,7 @@ Add to your `pubspec.yaml`:
 
 ```yaml
 dev_dependencies:
-  flutter_project_structure: ^2.0.3
+  flutter_project_structure: ^2.0.4
 ```
 
 Then run:

@@ -100,7 +100,7 @@ class FilePurposeAnalyzer implements FileAnalyzer {
       for (final declaration in compilationUnit.declarations) {
         if (declaration is ClassDeclaration) {
           final superclassName =
-              declaration.extendsClause?.superclass.name2.lexeme;
+              declaration.extendsClause?.superclass.toSource();
           if (superclassName != null) {
             purpose = _superclassToPurpose[superclassName];
             if (purpose != null) break;

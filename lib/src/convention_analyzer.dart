@@ -70,7 +70,7 @@ class ConventionAnalyzer implements FileAnalyzer {
     if (compilationUnit == null) return;
     for (final declaration in compilationUnit.declarations) {
       if (declaration is ClassDeclaration) {
-        final className = declaration.name.lexeme;
+        final className = _extractClassName(declaration);
         for (final suffix in _classSuffixes) {
           if (className.endsWith(suffix) && className != suffix) {
             classSuffixCounts[suffix] =
@@ -80,6 +80,14 @@ class ConventionAnalyzer implements FileAnalyzer {
         }
       }
     }
+  }
+
+  /// Extracts class name from a ClassDeclaration source.
+  /// Works across all analyzer versions by parsing the source string.
+  String _extractClassName(ClassDeclaration declaration) {
+    final source = declaration.toSource();
+    final match = RegExp(r'(?:abstract\s+)?class\s+(\w+)').firstMatch(source);
+    return match?.group(1) ?? '';
   }
 
   @override

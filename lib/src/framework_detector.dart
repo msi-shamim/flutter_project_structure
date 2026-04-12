@@ -95,7 +95,7 @@ class FrameworkDetector implements FileAnalyzer {
     for (final declaration in compilationUnit.declarations) {
       if (declaration is ClassDeclaration) {
         final superclassName =
-            declaration.extendsClause?.superclass.name2.lexeme;
+            declaration.extendsClause?.superclass.toSource();
         if (superclassName != null) {
           final framework = _superclassToFramework[superclassName];
           if (framework != null) {
