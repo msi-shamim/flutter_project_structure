@@ -38,7 +38,11 @@ class FlutterProjectStructure {
   /// Constructs a FlutterProjectStructure instance.
   ///
   /// [rootDir]: The root directory to analyze (default: 'lib').
-  /// [outputFile]: The output file name (default: 'project_structure.md').
+  /// [outputFile]: Where to write the markdown. Relative paths are resolved
+  /// against the current directory; when omitted, it defaults to
+  /// `project_structure.md` in the project root (next to `pubspec.yaml`),
+  /// so output lands with the analyzed project rather than wherever the
+  /// command happened to be run from.
   /// [includeFileStats]: Whether to include file statistics (default: true).
   /// [includeTodoComments]: Whether to include TODO and FIXME comments (default: true).
   /// [includeDependencyAnalysis]: Whether to include dependency analysis (default: true).
@@ -51,7 +55,7 @@ class FlutterProjectStructure {
   /// [includeMetricsAggregation]: Whether to compute aggregated metrics (default: true).
   FlutterProjectStructure({
     this.rootDir = 'lib',
-    this.outputFile = 'project_structure.md',
+    this.outputFile,
     this.includeFileStats = true,
     this.includeTodoComments = true,
     this.includeDependencyAnalysis = true,
@@ -65,7 +69,7 @@ class FlutterProjectStructure {
   });
 
   final String rootDir;
-  final String outputFile;
+  final String? outputFile;
   final bool includeFileStats;
   final bool includeTodoComments;
   final bool includeDependencyAnalysis;
@@ -165,9 +169,9 @@ class FlutterProjectStructure {
     if (includeFilePurpose) _addFilePurpose(projectStructure);
     if (includeMetricsAggregation) _addMetricsAggregation(projectStructure);
 
-    File(outputFile).writeAsStringSync(projectStructure.toString());
+    File(outputFilePath).writeAsStringSync(projectStructure.toString());
     print('Finished processing files.');
-    print('Project structure written to $outputFile');
+    print('Project structure written to $outputFilePath');
 
     return _buildProjectContext();
   }
@@ -233,6 +237,13 @@ class FlutterProjectStructure {
   /// Absolute, normalized path to the directory holding `pubspec.yaml`.
   late final String _projectRoot =
       path.dirname(path.normalize(path.absolute(rootDir)));
+
+  /// The path [generate] writes the markdown to.
+  ///
+  /// This is [outputFile] when supplied, otherwise `project_structure.md`
+  /// in the project root.
+  String get outputFilePath =>
+      outputFile ?? path.join(_projectRoot, 'project_structure.md');
 
   ProjectContext _buildProjectContext() {
     return ProjectContext(

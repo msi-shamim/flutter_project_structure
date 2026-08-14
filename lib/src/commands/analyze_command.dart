@@ -10,8 +10,8 @@ class AnalyzeCommand extends Command<void> {
           abbr: 'r', defaultsTo: 'lib', help: 'The root directory to analyze')
       ..addOption('output',
           abbr: 'o',
-          defaultsTo: 'project_structure.md',
-          help: 'The output file name')
+          help: 'Output file path '
+              '(default: project_structure.md in the project root)')
       ..addFlag('file-stats',
           abbr: 'f', defaultsTo: true, help: 'Include file statistics')
       ..addFlag('todo-comments',
@@ -47,7 +47,7 @@ class AnalyzeCommand extends Command<void> {
   void run() {
     final structure = FlutterProjectStructure(
       rootDir: argResults!['root-dir'] as String,
-      outputFile: argResults!['output'] as String,
+      outputFile: argResults!['output'] as String?,
       includeFileStats: argResults!['file-stats'] as bool,
       includeTodoComments: argResults!['todo-comments'] as bool,
       includeDependencyAnalysis: argResults!['dependency-analysis'] as bool,
@@ -61,6 +61,6 @@ class AnalyzeCommand extends Command<void> {
     );
     structure.generate();
     print('Project structure generated successfully.');
-    print('Output file: ${argResults!['output']}');
+    print('Output file: ${structure.outputFilePath}');
   }
 }

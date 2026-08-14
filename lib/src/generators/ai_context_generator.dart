@@ -15,8 +15,12 @@ class AiContextGenerator {
 
   static const _jsonEncoder = JsonEncoder.withIndent('  ');
 
-  /// Generate all 6 JSON files in the output directory.
-  void generate({String? outputDir}) {
+  /// Generate all 6 JSON files, returning the directory written to.
+  ///
+  /// [outputDir] is used as given (relative paths resolve against the
+  /// current directory). When omitted, `.ai-context/` is created in the
+  /// project root so it lands with the analyzed project.
+  String generate({String? outputDir}) {
     final dir = outputDir ??
         path.join(_context.projectRoot, '.ai-context');
     Directory(dir).createSync(recursive: true);
@@ -27,6 +31,8 @@ class AiContextGenerator {
     _writeConventionsJson(dir);
     _writeMetricsJson(dir);
     _writeTodosJson(dir);
+
+    return dir;
   }
 
   void _writeArchitectureJson(String dir) {

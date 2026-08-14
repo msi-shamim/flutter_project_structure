@@ -10,8 +10,8 @@ class AiContextCommand extends Command<void> {
           abbr: 'r', defaultsTo: 'lib', help: 'The root directory to analyze')
       ..addOption('output-dir',
           abbr: 'o',
-          defaultsTo: '.ai-context',
-          help: 'Output directory for JSON files');
+          help: 'Output directory for JSON files '
+              '(default: .ai-context/ in the project root)');
   }
 
   @override
@@ -24,16 +24,16 @@ class AiContextCommand extends Command<void> {
   @override
   void run() {
     final rootDir = argResults!['root-dir'] as String;
-    final outputDir = argResults!['output-dir'] as String;
+    final outputDir = argResults!['output-dir'] as String?;
 
     final structure = FlutterProjectStructure(rootDir: rootDir);
     final context = structure.generate();
     if (context == null) return;
 
-    AiContextGenerator(context).generate(outputDir: outputDir);
-    print('.ai-context/ generated at $outputDir');
+    final dir = AiContextGenerator(context).generate(outputDir: outputDir);
+    print('.ai-context/ generated at $dir');
 
-    ClaudeMdGenerator(context).generate();
-    print('CLAUDE.md generated.');
+    final claudeMd = ClaudeMdGenerator(context).generate();
+    print('CLAUDE.md generated at $claudeMd');
   }
 }

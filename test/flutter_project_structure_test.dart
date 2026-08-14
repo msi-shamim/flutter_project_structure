@@ -792,6 +792,99 @@ dependencies:
     });
   });
 
+  group('Output path resolution', () {
+    late Directory tempDir;
+    late Directory cwdSandbox;
+    late String originalCwd;
+
+    setUp(() {
+      tempDir =
+          Directory.systemTemp.createTempSync('flutter_project_structure_op_');
+      Directory('${tempDir.path}/lib').createSync(recursive: true);
+      File('${tempDir.path}/pubspec.yaml').writeAsStringSync('name: op_pkg\n');
+      File('${tempDir.path}/lib/main.dart').writeAsStringSync('void main() {}');
+
+      // Run from an unrelated directory so "project root" and "current
+      // directory" are distinguishable — the whole point of this group.
+      cwdSandbox = Directory.systemTemp
+          .createTempSync('flutter_project_structure_cwd_');
+      originalCwd = Directory.current.path;
+      Directory.current = cwdSandbox;
+    });
+
+    tearDown(() {
+      Directory.current = originalCwd;
+      tempDir.deleteSync(recursive: true);
+      cwdSandbox.deleteSync(recursive: true);
+    });
+
+    test('markdown defaults to the project root, not the current directory',
+        () {
+      FlutterProjectStructure(rootDir: '${tempDir.path}/lib').generate();
+
+      expect(File('${tempDir.path}/project_structure.md').existsSync(), isTrue,
+          reason: 'Output should land next to pubspec.yaml');
+      expect(File('${cwdSandbox.path}/project_structure.md').existsSync(),
+          isFalse,
+          reason: 'Output should not be dropped in the current directory');
+    });
+
+    test('CLAUDE.md defaults to the project root', () {
+      final context =
+          FlutterProjectStructure(rootDir: '${tempDir.path}/lib').generate()!;
+
+      final written = ClaudeMdGenerator(context).generate();
+
+      expect(File('${tempDir.path}/CLAUDE.md').existsSync(), isTrue);
+      expect(File('${cwdSandbox.path}/CLAUDE.md').existsSync(), isFalse);
+      expect(path.equals(written, '${tempDir.path}/CLAUDE.md'), isTrue,
+          reason: 'generate() should report where it wrote: $written');
+    });
+
+    test('.ai-context/ defaults to the project root', () {
+      final context =
+          FlutterProjectStructure(rootDir: '${tempDir.path}/lib').generate()!;
+
+      final dir = AiContextGenerator(context).generate();
+
+      expect(
+          File('${tempDir.path}/.ai-context/architecture.json').existsSync(),
+          isTrue);
+      expect(Directory('${cwdSandbox.path}/.ai-context').existsSync(), isFalse);
+      expect(path.equals(dir, '${tempDir.path}/.ai-context'), isTrue,
+          reason: 'generate() should report where it wrote: $dir');
+    });
+
+    test('an explicit relative path still resolves against the cwd', () {
+      FlutterProjectStructure(
+        rootDir: '${tempDir.path}/lib',
+        outputFile: 'custom_structure.md',
+      ).generate();
+
+      expect(File('${cwdSandbox.path}/custom_structure.md').existsSync(), isTrue,
+          reason: 'An explicitly passed relative path is standard CLI '
+              'behaviour and must not be redirected to the project root');
+      expect(File('${tempDir.path}/custom_structure.md').existsSync(), isFalse);
+    });
+
+    test('outputFilePath reports where the markdown will be written', () {
+      final byDefault =
+          FlutterProjectStructure(rootDir: '${tempDir.path}/lib');
+      final explicit = FlutterProjectStructure(
+        rootDir: '${tempDir.path}/lib',
+        outputFile: 'explicit.md',
+      );
+
+      expect(
+          path.equals(byDefault.outputFilePath,
+              '${tempDir.path}/project_structure.md'),
+          isTrue,
+          reason: 'Got: ${byDefault.outputFilePath}');
+      expect(explicit.outputFilePath, 'explicit.md',
+          reason: 'An explicit value should be passed through untouched');
+    });
+  });
+
   group('Nested file paths', () {
     late Directory tempDir;
 

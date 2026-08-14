@@ -44,21 +44,51 @@ package exists to produce. The README always documented the correct
   `TodoComments.findTodoComments`, `DependencyAnalysis.analyzeDependencies`, and
   `CodeMetrics.analyzeFileFromDisk`. Each took only a `File` and therefore could
   not resolve a correct path; use `analyzeFile` (or the pipeline) instead.
+- `FlutterProjectStructure.outputFile` is now `String?` and defaults to `null`
+  (meaning "the project root") rather than `'project_structure.md'`. See
+  **Output Locations** below.
 
-The CLI is unchanged — no command, flag, or default behaves differently. Only
-the emitted paths are corrected. Existing `// Path:` comments in your source are
-rewritten in place on the next run.
+No command or flag was added, removed or renamed. Existing `// Path:` comments
+in your source are rewritten in place on the next run.
+
+### Output Locations
+Outputs now default to the **project root** (beside `pubspec.yaml`) instead of
+the current working directory. Previously, analyzing a project elsewhere —
+`flutter_project_structure ai-context -r ../other/lib` — scattered
+`project_structure.md` and `.ai-context/` into whatever directory you happened
+to be standing in, while `CLAUDE.md` correctly followed the project. The three
+outputs disagreed with each other; now they don't.
+
+- `project_structure.md`, `.ai-context/` and `CLAUDE.md` all default to the
+  project root.
+- Passing an explicit `--output` / `--output-dir` still resolves against the
+  current directory, as any CLI tool should.
+- The CLI now prints the resolved absolute path it wrote to.
+
+This only changes behaviour when the analyzed project is not the directory you
+ran from. Running from your project root — the normal case — is unaffected.
 
 ### New Public API
 - `relativePathFor(File file, String projectRoot)` — computes the canonical,
   forward-slash, project-root-relative path used throughout the package.
+- `FlutterProjectStructure.outputFilePath` — the resolved path `generate()`
+  writes the markdown to.
+- `ClaudeMdGenerator.generate()` and `AiContextGenerator.generate()` now return
+  the path they wrote to instead of `void`.
 
 ### Tests
-- Expanded to 48 tests, including a `Nested file paths` group covering a
-  deliberately deep fixture: one test per analyzer, plus integration checks that
-  no reported path is doubled, truncated, backslash-separated, or unresolvable
-  on disk, and that the markdown and `.ai-context/` JSON refer to files
-  identically. All ten fail against the old path formula.
+- Expanded to 53 tests. A `Nested file paths` group covers a deliberately deep
+  fixture: one test per analyzer, plus integration checks that no reported path
+  is doubled, truncated, backslash-separated, or unresolvable on disk, and that
+  the markdown and `.ai-context/` JSON refer to files identically. All ten fail
+  against the old path formula.
+- An `Output path resolution` group runs from an unrelated working directory to
+  verify each output lands in the project root, and that an explicit path is
+  still honoured relative to the current directory.
+- Verified against a real 170-file Flutter project nested 7 levels deep. Before
+  this release, 145 of its 161 reported paths pointed at files that did not
+  exist and 9 files were dropped from the analysis entirely by key collisions;
+  now all 170 resolve.
 
 ## 2.0.4
 

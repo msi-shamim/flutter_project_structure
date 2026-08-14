@@ -9,7 +9,9 @@ class ClaudeMdCommand extends Command<void> {
       ..addOption('root-dir',
           abbr: 'r', defaultsTo: 'lib', help: 'The root directory to analyze')
       ..addOption('output',
-          abbr: 'o', defaultsTo: 'CLAUDE.md', help: 'Output file path');
+          abbr: 'o',
+          help: 'Output file path '
+              '(default: CLAUDE.md in the project root)');
   }
 
   @override
@@ -21,13 +23,13 @@ class ClaudeMdCommand extends Command<void> {
   @override
   void run() {
     final rootDir = argResults!['root-dir'] as String;
-    final output = argResults!['output'] as String;
+    final output = argResults!['output'] as String?;
 
     final structure = FlutterProjectStructure(rootDir: rootDir);
     final context = structure.generate();
     if (context == null) return;
 
-    ClaudeMdGenerator(context).generate(outputPath: output);
-    print('CLAUDE.md generated at $output');
+    final written = ClaudeMdGenerator(context).generate(outputPath: output);
+    print('CLAUDE.md generated at $written');
   }
 }

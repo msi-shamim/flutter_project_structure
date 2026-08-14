@@ -231,7 +231,7 @@ With `--watch`, the server re-analyzes when `.dart` files change (2-second debou
 | Flag | Short | Description |
 |------|-------|-------------|
 | `--root-dir` | `-r` | Root directory to analyze (default: `lib`) |
-| `--output` | `-o` | Output file name (default: `project_structure.md`) |
+| `--output` | `-o` | Output file path (default: `project_structure.md` in the project root) |
 | `--file-stats` | `-f` | File/line counting |
 | `--todo-comments` | `-t` | TODO/FIXME scanning |
 | `--dependency-analysis` | `-d` | Package import tracking |
@@ -253,25 +253,31 @@ Disable any feature with `--no-<flag>` (e.g., `--no-framework-detection`).
 import 'package:flutter_project_structure/flutter_project_structure.dart';
 
 void main() {
-  final structure = FlutterProjectStructure(
-    rootDir: 'lib',
-    outputFile: 'project_structure.md',
-  );
+  // Omit outputFile to write project_structure.md to the project root
+  // (next to pubspec.yaml). Pass one to choose your own path.
+  final structure = FlutterProjectStructure(rootDir: 'lib');
 
   // generate() injects path comments, writes project_structure.md,
   // and returns a ProjectContext for further use
   final context = structure.generate();
   if (context == null) return;
 
+  print('Written to: ${structure.outputFilePath}');
   print('Project type: ${context.projectTypeDetector?.projectType}');
   print('Total files: ${context.fileStatistics.totalFiles}');
   print('Frameworks: ${context.frameworkDetector?.detectedFrameworks.keys}');
 
-  // Use the context with generators
-  ClaudeMdGenerator(context).generate(outputPath: 'CLAUDE.md');
-  AiContextGenerator(context).generate(outputDir: '.ai-context');
+  // Generators default to the project root too, and return the path written
+  print(ClaudeMdGenerator(context).generate());
+  print(AiContextGenerator(context).generate());
 }
 ```
+
+Output locations follow one rule: **omit the flag and output lands in the
+project root** (beside `pubspec.yaml`), so it stays with the project you
+analyzed rather than wherever you happened to run the command from. Pass an
+explicit path and it is used as given, resolved against the current directory
+like any other CLI tool.
 
 ### Read-Only Analysis (no file modification)
 

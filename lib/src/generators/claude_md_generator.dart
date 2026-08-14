@@ -28,11 +28,16 @@ class ClaudeMdGenerator {
     return buffer.toString();
   }
 
-  /// Generate and write CLAUDE.md to disk.
-  void generate({String? outputPath}) {
+  /// Generate and write CLAUDE.md to disk, returning the path written.
+  ///
+  /// [outputPath] is used as given (relative paths resolve against the
+  /// current directory). When omitted, CLAUDE.md is written to the project
+  /// root so it lands with the analyzed project.
+  String generate({String? outputPath}) {
     final output = outputPath ??
         path.join(_context.projectRoot, 'CLAUDE.md');
     File(output).writeAsStringSync(render());
+    return output;
   }
 
   void _writeOverview(StringBuffer buffer) {
