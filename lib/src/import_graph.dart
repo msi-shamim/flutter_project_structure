@@ -67,8 +67,7 @@ class ImportGraph implements FileAnalyzer {
       imports.values.fold(0, (sum, targets) => sum + targets.length);
 
   @override
-  void analyzeFile(
-      File file, String content, CompilationUnit? compilationUnit,
+  void analyzeFile(File file, String content, CompilationUnit? compilationUnit,
       {required String relativePath}) {
     _knownFiles.add(relativePath);
     if (compilationUnit == null) return;
@@ -157,13 +156,12 @@ class ImportGraph implements FileAnalyzer {
 
   /// The most depended-upon files, most first — changing these is riskiest.
   List<MapEntry<String, int>> hubs({int limit = 5}) {
-    final ranked = importedBy.entries
-        .map((e) => MapEntry(e.key, e.value.length))
-        .toList()
-      ..sort((a, b) {
-        final byCount = b.value.compareTo(a.value);
-        return byCount != 0 ? byCount : a.key.compareTo(b.key);
-      });
+    final ranked =
+        importedBy.entries.map((e) => MapEntry(e.key, e.value.length)).toList()
+          ..sort((a, b) {
+            final byCount = b.value.compareTo(a.value);
+            return byCount != 0 ? byCount : a.key.compareTo(b.key);
+          });
     return ranked.take(limit).toList();
   }
 

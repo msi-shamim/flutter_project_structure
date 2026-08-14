@@ -11,8 +11,7 @@ class CodeMetrics implements FileAnalyzer {
   final Map<String, FileMetrics> fileMetrics = {};
 
   @override
-  void analyzeFile(
-      File file, String content, CompilationUnit? compilationUnit,
+  void analyzeFile(File file, String content, CompilationUnit? compilationUnit,
       {required String relativePath}) {
     if (compilationUnit == null) return;
 

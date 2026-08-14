@@ -34,8 +34,7 @@ class ClaudeMdGenerator {
   /// current directory). When omitted, CLAUDE.md is written to the project
   /// root so it lands with the analyzed project.
   String generate({String? outputPath}) {
-    final output = outputPath ??
-        path.join(_context.projectRoot, 'CLAUDE.md');
+    final output = outputPath ?? path.join(_context.projectRoot, 'CLAUDE.md');
     File(output).writeAsStringSync(render());
     return output;
   }
@@ -53,8 +52,7 @@ class ClaudeMdGenerator {
     final frameworkDetector = _context.frameworkDetector;
     if (frameworkDetector != null &&
         frameworkDetector.detectedFrameworks.isNotEmpty) {
-      final frameworks =
-          frameworkDetector.detectedFrameworks.keys.join(', ');
+      final frameworks = frameworkDetector.detectedFrameworks.keys.join(', ');
       buffer.writeln('- **Tech Stack:** $frameworks');
     }
 
@@ -80,8 +78,7 @@ class ClaudeMdGenerator {
       ..sort((a, b) => b.value.length.compareTo(a.value.length));
     for (final entry in sortedLayers) {
       final count = entry.value.length;
-      buffer.writeln(
-          '- ${entry.key} ($count file${count == 1 ? '' : 's'})');
+      buffer.writeln('- ${entry.key} ($count file${count == 1 ? '' : 's'})');
     }
     buffer.writeln();
 
@@ -111,16 +108,14 @@ class ClaudeMdGenerator {
     buffer.writeln('```\n');
   }
 
-  void _writeDirectoryTree(
-      Directory dir, StringBuffer buffer, int level,
+  void _writeDirectoryTree(Directory dir, StringBuffer buffer, int level,
       {int maxDepth = 3}) {
     if (level > maxDepth) return;
 
     final indent = '  ' * level;
     final dirName = '${path.basename(dir.path)}/';
 
-    final entities = dir.listSync()
-      ..sort((a, b) => a.path.compareTo(b.path));
+    final entities = dir.listSync()..sort((a, b) => a.path.compareTo(b.path));
 
     // Skip macOS resource fork metadata files/directories
     final files = entities
@@ -133,8 +128,7 @@ class ClaudeMdGenerator {
         .toList();
 
     if (level > 0) {
-      final dartFileCount =
-          files.where((f) => f.path.endsWith('.dart')).length;
+      final dartFileCount = files.where((f) => f.path.endsWith('.dart')).length;
       if (dartFileCount > 20) {
         buffer.writeln('$indent$dirName ($dartFileCount files)');
         return;
@@ -166,14 +160,12 @@ class ClaudeMdGenerator {
 
     if (conventions.fileSuffixCounts.isNotEmpty) {
       final suffixes = conventions.fileSuffixCounts.keys.join(', ');
-      buffer.writeln(
-          '- File naming: snake_case with suffixes ($suffixes)');
+      buffer.writeln('- File naming: snake_case with suffixes ($suffixes)');
     }
 
     if (conventions.classSuffixCounts.isNotEmpty) {
       final suffixes = conventions.classSuffixCounts.keys.join(', ');
-      buffer.writeln(
-          '- Class naming: PascalCase with suffixes ($suffixes)');
+      buffer.writeln('- Class naming: PascalCase with suffixes ($suffixes)');
     }
 
     // File purpose summary
@@ -181,8 +173,7 @@ class ClaudeMdGenerator {
     if (purposes != null && purposes.purposeCounts.isNotEmpty) {
       final sorted = purposes.purposeCounts.entries.toList()
         ..sort((a, b) => b.value.compareTo(a.value));
-      final summary =
-          sorted.map((e) => '${e.key} (${e.value})').join(', ');
+      final summary = sorted.map((e) => '${e.key} (${e.value})').join(', ');
       buffer.writeln('- File purposes: $summary');
     }
 
@@ -200,8 +191,7 @@ class ClaudeMdGenerator {
       ..sort((a, b) => b.value.length.compareTo(a.value.length));
     for (final entry in sorted.take(15)) {
       final count = entry.value.length;
-      buffer.writeln(
-          '- ${entry.key}: $count file${count == 1 ? '' : 's'}');
+      buffer.writeln('- ${entry.key}: $count file${count == 1 ? '' : 's'}');
     }
 
     buffer.writeln();
@@ -261,8 +251,7 @@ class ClaudeMdGenerator {
     if (aggregator != null && aggregator.largestFiles.isNotEmpty) {
       final files = (aggregator.largestFiles as List)
           .take(5)
-          .map((e) =>
-              '${path.basename(e.key)} (${e.value})')
+          .map((e) => '${path.basename(e.key)} (${e.value})')
           .join(', ');
       buffer.writeln('- Largest files: $files');
     }

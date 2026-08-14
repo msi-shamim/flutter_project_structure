@@ -15,9 +15,7 @@ class AnalyzeCommand extends Command<void> {
       ..addFlag('file-stats',
           abbr: 'f', defaultsTo: true, help: 'Include file statistics')
       ..addFlag('todo-comments',
-          abbr: 't',
-          defaultsTo: true,
-          help: 'Include TODO and FIXME comments')
+          abbr: 't', defaultsTo: true, help: 'Include TODO and FIXME comments')
       ..addFlag('dependency-analysis',
           abbr: 'd', defaultsTo: true, help: 'Include dependency analysis')
       ..addFlag('code-metrics',

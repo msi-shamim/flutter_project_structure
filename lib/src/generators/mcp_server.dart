@@ -128,8 +128,7 @@ class McpProjectServer {
                 'Omit for a whole-graph summary.',
           ),
           'depth': JsonSchema.integer(
-            description:
-                'How far to walk the graph for the blast radius. '
+            description: 'How far to walk the graph for the blast radius. '
                 'Omit for the full transitive closure.',
           ),
         },
@@ -140,8 +139,7 @@ class McpProjectServer {
     // Tool 7: get_file_skeleton
     _server.registerTool(
       'get_file_skeleton',
-      description:
-          "Get a file's declarations without their bodies — classes, "
+      description: "Get a file's declarations without their bodies — classes, "
           'constructors, method signatures and fields. Roughly a tenth the '
           'size of reading the file. Use this to learn how to CALL a file; '
           'read the file itself only when you need to CHANGE it, or when the '
@@ -174,8 +172,7 @@ class McpProjectServer {
       inputSchema: JsonObject(
         properties: {
           'section': JsonSchema.string(
-            description:
-                'Return a specific section: "tree", "project_type", '
+            description: 'Return a specific section: "tree", "project_type", '
                 '"frameworks", "architecture", "statistics", "todos", '
                 '"dependencies", "metrics", "conventions", '
                 '"file_purposes", "aggregated_metrics". '
@@ -324,8 +321,7 @@ class McpProjectServer {
   }
 
   CallToolResult _handleGetTodos(Map<String, dynamic> args) {
-    final severity =
-        (args['severity'] as String?)?.toUpperCase() ?? 'ALL';
+    final severity = (args['severity'] as String?)?.toUpperCase() ?? 'ALL';
     final todos = _context.todoComments.todoComments;
 
     var totalCount = 0;
@@ -471,7 +467,8 @@ class McpProjectServer {
     if (rendered.isEmpty) {
       return CallToolResult(
         content: [
-          TextContent(text: 'No files found in analysis: ${missing.join(', ')}'),
+          TextContent(
+              text: 'No files found in analysis: ${missing.join(', ')}'),
         ],
         isError: true,
       );
@@ -563,9 +560,8 @@ class McpProjectServer {
     // "tree" is special — it's everything before the first ## heading
     if (sectionFilter == 'tree') {
       final firstHeading = markdown.indexOf('\n## ');
-      final tree = firstHeading > 0
-          ? markdown.substring(0, firstHeading)
-          : markdown;
+      final tree =
+          firstHeading > 0 ? markdown.substring(0, firstHeading) : markdown;
       return CallToolResult(
         content: [TextContent(text: tree.trim())],
       );
@@ -597,7 +593,8 @@ class McpProjectServer {
 
     // Find the next ## heading or end of string
     final contentStart = start + 1;
-    final nextHeading = markdown.indexOf('\n## ', contentStart + heading.length);
+    final nextHeading =
+        markdown.indexOf('\n## ', contentStart + heading.length);
     final section = nextHeading > 0
         ? markdown.substring(contentStart, nextHeading)
         : markdown.substring(contentStart);

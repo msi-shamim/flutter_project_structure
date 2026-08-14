@@ -51,14 +51,12 @@ class ConventionAnalyzer implements FileAnalyzer {
   ];
 
   @override
-  void analyzeFile(
-      File file, String content, CompilationUnit? compilationUnit,
+  void analyzeFile(File file, String content, CompilationUnit? compilationUnit,
       {required String relativePath}) {
     _totalFiles++;
 
     // Check file name suffix
-    final baseName =
-        path.basenameWithoutExtension(file.path);
+    final baseName = path.basenameWithoutExtension(file.path);
     for (final suffix in _fileSuffixes) {
       if (baseName.endsWith(suffix)) {
         fileSuffixCounts[suffix] = (fileSuffixCounts[suffix] ?? 0) + 1;
@@ -74,8 +72,7 @@ class ConventionAnalyzer implements FileAnalyzer {
         final className = _extractClassName(declaration);
         for (final suffix in _classSuffixes) {
           if (className.endsWith(suffix) && className != suffix) {
-            classSuffixCounts[suffix] =
-                (classSuffixCounts[suffix] ?? 0) + 1;
+            classSuffixCounts[suffix] = (classSuffixCounts[suffix] ?? 0) + 1;
             break;
           }
         }

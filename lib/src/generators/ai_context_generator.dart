@@ -6,7 +6,7 @@ import 'package:path/path.dart' as path;
 
 import '../project_context.dart';
 
-/// Generates a `.ai-context/` directory with 6 structured JSON files
+/// Generates a `.ai-context/` directory with 8 structured JSON files
 /// for programmatic AI agent consumption.
 class AiContextGenerator {
   AiContextGenerator(this._context);
@@ -15,14 +15,13 @@ class AiContextGenerator {
 
   static const _jsonEncoder = JsonEncoder.withIndent('  ');
 
-  /// Generate all 6 JSON files, returning the directory written to.
+  /// Generate all 8 JSON files, returning the directory written to.
   ///
   /// [outputDir] is used as given (relative paths resolve against the
   /// current directory). When omitted, `.ai-context/` is created in the
   /// project root so it lands with the analyzed project.
   String generate({String? outputDir}) {
-    final dir = outputDir ??
-        path.join(_context.projectRoot, '.ai-context');
+    final dir = outputDir ?? path.join(_context.projectRoot, '.ai-context');
     Directory(dir).createSync(recursive: true);
 
     _writeArchitectureJson(dir);
@@ -139,8 +138,7 @@ class AiContextGenerator {
         'classes': m.classes,
         'methods': m.methods,
         'commentLines': m.commentLines,
-        'commentRatio':
-            double.parse(m.commentRatio.toStringAsFixed(1)),
+        'commentRatio': double.parse(m.commentRatio.toStringAsFixed(1)),
       };
     }
 
@@ -154,8 +152,7 @@ class AiContextGenerator {
   }
 
   void _writePatternsJson(String dir) {
-    final frameworks =
-        _context.frameworkDetector?.detectedFrameworks ?? {};
+    final frameworks = _context.frameworkDetector?.detectedFrameworks ?? {};
 
     final frameworkData = <String, dynamic>{};
     for (final entry in frameworks.entries) {
@@ -180,12 +177,9 @@ class AiContextGenerator {
     final purposes = _context.filePurposeAnalyzer;
 
     final data = <String, dynamic>{
-      'fileSuffixes':
-          conventions?.fileSuffixCounts ?? <String, int>{},
-      'classSuffixes':
-          conventions?.classSuffixCounts ?? <String, int>{},
-      'filePurposes':
-          purposes?.purposeCounts ?? <String, int>{},
+      'fileSuffixes': conventions?.fileSuffixCounts ?? <String, int>{},
+      'classSuffixes': conventions?.classSuffixCounts ?? <String, int>{},
+      'filePurposes': purposes?.purposeCounts ?? <String, int>{},
     };
 
     File(path.join(dir, 'conventions.json'))
@@ -201,20 +195,15 @@ class AiContextGenerator {
         'totalFiles': stats.totalFiles,
         'dartFiles': stats.dartFiles,
         'totalLines': stats.totalLines,
-        'averageLocPerFile':
-            aggregator != null
-                ? double.parse(
-                    aggregator.averageLoc.toStringAsFixed(1))
-                : 0.0,
-        'averageCommentRatio':
-            aggregator != null
-                ? double.parse(
-                    aggregator.averageCommentRatio.toStringAsFixed(1))
-                : 0.0,
+        'averageLocPerFile': aggregator != null
+            ? double.parse(aggregator.averageLoc.toStringAsFixed(1))
+            : 0.0,
+        'averageCommentRatio': aggregator != null
+            ? double.parse(aggregator.averageCommentRatio.toStringAsFixed(1))
+            : 0.0,
         'totalClasses': aggregator?.totalClasses ?? 0,
         'totalMethods': aggregator?.totalMethods ?? 0,
-        'filesWithoutComments':
-            aggregator?.filesWithoutComments ?? 0,
+        'filesWithoutComments': aggregator?.filesWithoutComments ?? 0,
       },
       'largestFiles': (aggregator?.largestFiles ?? [])
           .map((e) => {'file': e.key, 'lines': e.value})

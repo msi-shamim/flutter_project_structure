@@ -53,6 +53,16 @@ package exists to produce. The README always documented the correct
 No command or flag was added, removed or renamed. Existing `// Path:` comments
 in your source are rewritten in place on the next run.
 
+### Packaging
+- `analyzer` widened to `>=7.1.0 <15.0.0` — verified against 14.1.0 and, at the
+  constraint's lower bound, 7.3.0. `dart pub outdated` now reports nothing
+  outdated.
+- `lints` bumped to `^6.1.0`, `test` floor raised to the version actually
+  validated.
+- Whole package reformatted with `dart format`. The Dart 3.7+ formatter
+  restyles code the previous one accepted, so this touches files unrelated to
+  the changes above.
+
 ### Documentation
 
 The README's savings claims are rewritten against measured numbers. It

@@ -279,15 +279,11 @@ class FlutterProjectStructure {
       dependencyAnalysis: _dependencyAnalysis,
       codeMetrics: _codeMetrics,
       projectTypeDetector: includeProjectType ? _projectTypeDetector : null,
-      frameworkDetector:
-          includeFrameworkDetection ? _frameworkDetector : null,
-      architectureAnalyzer:
-          includeArchitecture ? _architectureAnalyzer : null,
+      frameworkDetector: includeFrameworkDetection ? _frameworkDetector : null,
+      architectureAnalyzer: includeArchitecture ? _architectureAnalyzer : null,
       conventionAnalyzer: includeConventions ? _conventionAnalyzer : null,
-      filePurposeAnalyzer:
-          includeFilePurpose ? _filePurposeAnalyzer : null,
-      metricsAggregator:
-          includeMetricsAggregation ? _metricsAggregator : null,
+      filePurposeAnalyzer: includeFilePurpose ? _filePurposeAnalyzer : null,
+      metricsAggregator: includeMetricsAggregation ? _metricsAggregator : null,
       importGraph: includeImportGraph ? _importGraph : null,
       skeletonAnalyzer: includeSkeletons ? _skeletonAnalyzer : null,
     );

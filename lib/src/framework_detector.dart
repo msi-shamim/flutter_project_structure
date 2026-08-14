@@ -83,16 +83,14 @@ class FrameworkDetector implements FileAnalyzer {
   }
 
   @override
-  void analyzeFile(
-      File file, String content, CompilationUnit? compilationUnit,
+  void analyzeFile(File file, String content, CompilationUnit? compilationUnit,
       {required String relativePath}) {
     if (compilationUnit == null) return;
 
     // AST superclass-based detection
     for (final declaration in compilationUnit.declarations) {
       if (declaration is ClassDeclaration) {
-        final superclassName =
-            declaration.extendsClause?.superclass.toSource();
+        final superclassName = declaration.extendsClause?.superclass.toSource();
         if (superclassName != null) {
           final framework = _superclassToFramework[superclassName];
           if (framework != null) {
@@ -136,10 +134,8 @@ class FrameworkDetector implements FileAnalyzer {
     }
 
     final buffer = StringBuffer();
-    buffer.writeln(
-        '| Framework | In pubspec | Files using it |');
-    buffer.writeln(
-        '|-----------|-----------|----------------|');
+    buffer.writeln('| Framework | In pubspec | Files using it |');
+    buffer.writeln('|-----------|-----------|----------------|');
     for (final info in detectedFrameworks.values) {
       final pubspecLabel = info.inPubspec ? 'Yes' : 'No';
       buffer.writeln(

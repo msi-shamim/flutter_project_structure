@@ -53,8 +53,7 @@ class ArchitectureAnalyzer implements FileAnalyzer {
   };
 
   @override
-  void analyzeFile(
-      File file, String content, CompilationUnit? compilationUnit,
+  void analyzeFile(File file, String content, CompilationUnit? compilationUnit,
       {required String relativePath}) {
     // Detect entry points
     final fileName = path.basename(file.path);

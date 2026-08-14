@@ -21,8 +21,7 @@ class MetricsAggregator implements FileAnalyzer {
   List<MapEntry<String, int>> largestFiles = [];
 
   @override
-  void analyzeFile(
-      File file, String content, CompilationUnit? compilationUnit,
+  void analyzeFile(File file, String content, CompilationUnit? compilationUnit,
       {required String relativePath}) {
     // No-op: all data comes from other analyzers after pipeline completes.
   }
@@ -65,8 +64,7 @@ class MetricsAggregator implements FileAnalyzer {
     final buffer = StringBuffer();
     buffer.writeln('- Total Classes: $totalClasses');
     buffer.writeln('- Total Methods: $totalMethods');
-    buffer.writeln(
-        '- Average LOC per file: ${averageLoc.toStringAsFixed(1)}');
+    buffer.writeln('- Average LOC per file: ${averageLoc.toStringAsFixed(1)}');
     buffer.writeln(
         '- Average Comment Ratio: ${averageCommentRatio.toStringAsFixed(1)}%');
     buffer.writeln('- Files without comments: $filesWithoutComments');

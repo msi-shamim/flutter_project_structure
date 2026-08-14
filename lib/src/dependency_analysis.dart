@@ -10,8 +10,7 @@ class DependencyAnalysis implements FileAnalyzer {
   final Map<String, Set<String>> packageDependencies = {};
 
   @override
-  void analyzeFile(
-      File file, String content, CompilationUnit? compilationUnit,
+  void analyzeFile(File file, String content, CompilationUnit? compilationUnit,
       {required String relativePath}) {
     if (compilationUnit == null) return;
 

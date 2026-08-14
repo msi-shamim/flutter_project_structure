@@ -11,9 +11,7 @@ class McpServerCommand extends Command<void> {
       ..addOption('root-dir',
           abbr: 'r', defaultsTo: 'lib', help: 'The root directory to analyze')
       ..addFlag('watch',
-          abbr: 'w',
-          defaultsTo: false,
-          help: 'Re-analyze on file changes');
+          abbr: 'w', defaultsTo: false, help: 'Re-analyze on file changes');
   }
 
   @override

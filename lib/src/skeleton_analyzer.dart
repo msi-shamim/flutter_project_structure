@@ -95,8 +95,7 @@ class SkeletonAnalyzer implements FileAnalyzer {
       sourceLength == 0 ? 0 : (1 - skeletonLength / sourceLength) * 100;
 
   @override
-  void analyzeFile(
-      File file, String content, CompilationUnit? compilationUnit,
+  void analyzeFile(File file, String content, CompilationUnit? compilationUnit,
       {required String relativePath}) {
     if (compilationUnit == null) return;
 
@@ -182,8 +181,8 @@ class _SkeletonVisitor extends RecursiveAstVisitor<void> {
       _slice(_start(node), bodyOffset);
 
   void _container(AnnotatedNode node, String kind, void Function() descend) {
-    final entry = SkeletonEntry(
-        kind: kind, signature: _header(node), doc: _doc(node));
+    final entry =
+        SkeletonEntry(kind: kind, signature: _header(node), doc: _doc(node));
     _target.add(entry);
 
     final previous = _enclosing;
@@ -196,8 +195,8 @@ class _SkeletonVisitor extends RecursiveAstVisitor<void> {
 
   void _add(AnnotatedNode node, String kind, String signature) {
     if (signature.isEmpty) return;
-    _target.add(
-        SkeletonEntry(kind: kind, signature: signature, doc: _doc(node)));
+    _target
+        .add(SkeletonEntry(kind: kind, signature: signature, doc: _doc(node)));
   }
 
   @override

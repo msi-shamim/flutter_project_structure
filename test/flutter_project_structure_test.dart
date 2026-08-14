@@ -154,11 +154,10 @@ class TestClass {
     late Directory tempDir;
 
     setUp(() {
-      tempDir = Directory.systemTemp
-          .createTempSync('flutter_project_structure_md_');
+      tempDir =
+          Directory.systemTemp.createTempSync('flutter_project_structure_md_');
       Directory('${tempDir.path}/lib').createSync();
-      File('${tempDir.path}/lib/main.dart')
-          .writeAsStringSync('void main() {}');
+      File('${tempDir.path}/lib/main.dart').writeAsStringSync('void main() {}');
     });
 
     tearDown(() {
@@ -325,8 +324,7 @@ class ApiClient {
     });
 
     test('detects main_*.dart as entry points', () {
-      File('${tempDir.path}/lib/main.dart')
-          .writeAsStringSync('void main() {}');
+      File('${tempDir.path}/lib/main.dart').writeAsStringSync('void main() {}');
       File('${tempDir.path}/lib/main_development.dart')
           .writeAsStringSync('void main() {}');
       File('${tempDir.path}/lib/main_staging.dart')
@@ -566,19 +564,19 @@ class MyApp {}
       AiContextGenerator(context).generate(outputDir: outputDir);
 
       // Check architecture.json
-      final arch = jsonDecode(
-          File('$outputDir/architecture.json').readAsStringSync());
+      final arch =
+          jsonDecode(File('$outputDir/architecture.json').readAsStringSync());
       expect(arch['projectType'], isA<String>());
       expect(arch['entryPoints'], isA<List>());
 
       // Check metrics.json
-      final metrics = jsonDecode(
-          File('$outputDir/metrics.json').readAsStringSync());
+      final metrics =
+          jsonDecode(File('$outputDir/metrics.json').readAsStringSync());
       expect(metrics['summary']['totalFiles'], greaterThan(0));
 
       // Check todos.json
-      final todos = jsonDecode(
-          File('$outputDir/todos.json').readAsStringSync());
+      final todos =
+          jsonDecode(File('$outputDir/todos.json').readAsStringSync());
       expect(todos['totalCount'], greaterThan(0));
     });
 
@@ -635,8 +633,7 @@ class MyApp {}
     });
 
     test('skips macOS ._* metadata files during analysis', () {
-      File('${tempDir.path}/lib/main.dart')
-          .writeAsStringSync('void main() {}');
+      File('${tempDir.path}/lib/main.dart').writeAsStringSync('void main() {}');
       // Create a fake macOS metadata file (binary content)
       File('${tempDir.path}/lib/._main.dart')
           .writeAsBytesSync([0x00, 0x05, 0x16, 0x07, 0x00, 0x02, 0x00]);
@@ -655,8 +652,7 @@ class MyApp {}
     });
 
     test('excludes ._* files from markdown output', () {
-      File('${tempDir.path}/lib/main.dart')
-          .writeAsStringSync('void main() {}');
+      File('${tempDir.path}/lib/main.dart').writeAsStringSync('void main() {}');
       File('${tempDir.path}/lib/._main.dart')
           .writeAsBytesSync([0x00, 0x05, 0x16, 0x07]);
 
@@ -672,8 +668,7 @@ class MyApp {}
     });
 
     test('excludes ._* files from CLAUDE.md directory tree', () {
-      File('${tempDir.path}/lib/main.dart')
-          .writeAsStringSync('void main() {}');
+      File('${tempDir.path}/lib/main.dart').writeAsStringSync('void main() {}');
       File('${tempDir.path}/lib/._main.dart')
           .writeAsBytesSync([0x00, 0x05, 0x16, 0x07]);
 
@@ -725,8 +720,7 @@ flutter:
       android:
         package: com.example.my_plugin
 ''');
-      File('${tempDir.path}/lib/main.dart')
-          .writeAsStringSync('void main() {}');
+      File('${tempDir.path}/lib/main.dart').writeAsStringSync('void main() {}');
 
       final structure = FlutterProjectStructure(
         rootDir: '${tempDir.path}/lib',
@@ -784,8 +778,8 @@ dependencies:
       expect(context.architectureAnalyzer?.layerFiles.containsKey('Model'),
           isTrue);
       expect(context.conventionAnalyzer?.fileSuffixCounts['_model'], 1);
-      expect(context.filePurposeAnalyzer?.filePurposes.values,
-          contains('model'));
+      expect(
+          context.filePurposeAnalyzer?.filePurposes.values, contains('model'));
       expect(
           context.frameworkDetector?.detectedFrameworks.containsKey('Provider'),
           isTrue);
@@ -806,8 +800,8 @@ dependencies:
 
       // Run from an unrelated directory so "project root" and "current
       // directory" are distinguishable — the whole point of this group.
-      cwdSandbox = Directory.systemTemp
-          .createTempSync('flutter_project_structure_cwd_');
+      cwdSandbox =
+          Directory.systemTemp.createTempSync('flutter_project_structure_cwd_');
       originalCwd = Directory.current.path;
       Directory.current = cwdSandbox;
     });
@@ -824,8 +818,8 @@ dependencies:
 
       expect(File('${tempDir.path}/project_structure.md').existsSync(), isTrue,
           reason: 'Output should land next to pubspec.yaml');
-      expect(File('${cwdSandbox.path}/project_structure.md').existsSync(),
-          isFalse,
+      expect(
+          File('${cwdSandbox.path}/project_structure.md').existsSync(), isFalse,
           reason: 'Output should not be dropped in the current directory');
     });
 
@@ -847,8 +841,7 @@ dependencies:
 
       final dir = AiContextGenerator(context).generate();
 
-      expect(
-          File('${tempDir.path}/.ai-context/architecture.json').existsSync(),
+      expect(File('${tempDir.path}/.ai-context/architecture.json').existsSync(),
           isTrue);
       expect(Directory('${cwdSandbox.path}/.ai-context').existsSync(), isFalse);
       expect(path.equals(dir, '${tempDir.path}/.ai-context'), isTrue,
@@ -861,23 +854,23 @@ dependencies:
         outputFile: 'custom_structure.md',
       ).generate();
 
-      expect(File('${cwdSandbox.path}/custom_structure.md').existsSync(), isTrue,
+      expect(
+          File('${cwdSandbox.path}/custom_structure.md').existsSync(), isTrue,
           reason: 'An explicitly passed relative path is standard CLI '
               'behaviour and must not be redirected to the project root');
       expect(File('${tempDir.path}/custom_structure.md').existsSync(), isFalse);
     });
 
     test('outputFilePath reports where the markdown will be written', () {
-      final byDefault =
-          FlutterProjectStructure(rootDir: '${tempDir.path}/lib');
+      final byDefault = FlutterProjectStructure(rootDir: '${tempDir.path}/lib');
       final explicit = FlutterProjectStructure(
         rootDir: '${tempDir.path}/lib',
         outputFile: 'explicit.md',
       );
 
       expect(
-          path.equals(byDefault.outputFilePath,
-              '${tempDir.path}/project_structure.md'),
+          path.equals(
+              byDefault.outputFilePath, '${tempDir.path}/project_structure.md'),
           isTrue,
           reason: 'Got: ${byDefault.outputFilePath}');
       expect(explicit.outputFilePath, 'explicit.md',
@@ -1031,7 +1024,8 @@ class LoginButtonWidget {}
     setUp(() {
       tempDir =
           Directory.systemTemp.createTempSync('flutter_project_structure_sk_');
-      File('${tempDir.path}/pubspec.yaml').writeAsStringSync('name: skel_app\n');
+      File('${tempDir.path}/pubspec.yaml')
+          .writeAsStringSync('name: skel_app\n');
       Directory('${tempDir.path}/lib').createSync(recursive: true);
 
       File('${tempDir.path}/lib/service.dart').writeAsStringSync('''
@@ -1187,8 +1181,8 @@ String topLevel(int a) => 'x';
 
     test('resolves a relative import against the importing file', () {
       expect(
-          resolveProjectImport('../core/colors.dart',
-              'lib/modules/home/page.dart',
+          resolveProjectImport(
+              '../core/colors.dart', 'lib/modules/home/page.dart',
               packageName: 'my_app'),
           'lib/modules/core/colors.dart');
     });
@@ -1251,8 +1245,8 @@ class Cubit {}
       final graph = graphOf();
 
       expect(graph.imports['lib/main.dart'], contains('lib/ui/home.dart'));
-      expect(graph.imports['lib/ui/home.dart'],
-          contains('lib/core/colors.dart'));
+      expect(
+          graph.imports['lib/ui/home.dart'], contains('lib/core/colors.dart'));
     });
 
     test('excludes third-party packages from the graph', () {

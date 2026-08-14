@@ -134,8 +134,8 @@ void readOnlyAnalysis(Directory projectDir) {
 }
 
 Future<Directory> createSampleProject() async {
-  final projectDir = Directory.systemTemp
-      .createTempSync('flutter_project_structure_example_');
+  final projectDir =
+      Directory.systemTemp.createTempSync('flutter_project_structure_example_');
 
   // Create pubspec.yaml with some frameworks
   File(path.join(projectDir.path, 'pubspec.yaml')).writeAsStringSync('''

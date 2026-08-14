@@ -26,14 +26,16 @@ class ProjectTypeDetector implements FileAnalyzer {
   void detect(String projectRoot) {
     _indicators.clear();
 
-    final hasMelosYaml = File(path.join(projectRoot, 'melos.yaml')).existsSync();
+    final hasMelosYaml =
+        File(path.join(projectRoot, 'melos.yaml')).existsSync();
     if (hasMelosYaml) {
       _indicators.add('Found melos.yaml in project root');
     }
 
     final pubspecCount = _countPubspecFiles(Directory(projectRoot));
     if (pubspecCount > 1) {
-      _indicators.add('Found $pubspecCount pubspec.yaml files (monorepo indicator)');
+      _indicators
+          .add('Found $pubspecCount pubspec.yaml files (monorepo indicator)');
     }
 
     bool hasFlutterKey = false;
@@ -91,8 +93,7 @@ class ProjectTypeDetector implements FileAnalyzer {
   }
 
   @override
-  void analyzeFile(
-      File file, String content, CompilationUnit? compilationUnit,
+  void analyzeFile(File file, String content, CompilationUnit? compilationUnit,
       {required String relativePath}) {
     // No-op: all detection is done in detect()
   }

@@ -11,8 +11,7 @@ class TodoComments implements FileAnalyzer {
   final Map<String, List<String>> todoComments = {};
 
   @override
-  void analyzeFile(
-      File file, String content, CompilationUnit? compilationUnit,
+  void analyzeFile(File file, String content, CompilationUnit? compilationUnit,
       {required String relativePath}) {
     final lines = LineSplitter.split(content).toList();
 

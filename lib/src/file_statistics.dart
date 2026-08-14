@@ -18,8 +18,7 @@ class FileStatistics implements FileAnalyzer {
   int smallestFileLines = 0;
 
   @override
-  void analyzeFile(
-      File file, String content, CompilationUnit? compilationUnit,
+  void analyzeFile(File file, String content, CompilationUnit? compilationUnit,
       {required String relativePath}) {
     totalFiles++;
     dartFiles++;
