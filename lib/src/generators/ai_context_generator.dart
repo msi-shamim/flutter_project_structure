@@ -32,8 +32,37 @@ class AiContextGenerator {
     _writeMetricsJson(dir);
     _writeTodosJson(dir);
     _writeGraphJson(dir);
+    _writeSkeletonsJson(dir);
 
     return dir;
+  }
+
+  void _writeSkeletonsJson(String dir) {
+    final analyzer = _context.skeletonAnalyzer;
+
+    // Stored as rendered text rather than a nested tree: it is what a
+    // consumer actually feeds to a model, and the JSON nesting more than
+    // doubled the file for no added information.
+    final files = <String, dynamic>{};
+    if (analyzer != null) {
+      for (final entry in analyzer.skeletons.entries) {
+        files[entry.key] = {
+          'declarations': entry.value.declarationCount,
+          'skeleton': entry.value.render().trimRight(),
+        };
+      }
+    }
+
+    final data = <String, dynamic>{
+      'fileCount': files.length,
+      'compressionPercent': analyzer == null
+          ? 0
+          : double.parse(analyzer.compressionRatio.toStringAsFixed(1)),
+      'files': files,
+    };
+
+    File(path.join(dir, 'skeletons.json'))
+        .writeAsStringSync(_jsonEncoder.convert(data));
   }
 
   void _writeGraphJson(String dir) {

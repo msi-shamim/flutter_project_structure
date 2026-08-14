@@ -17,6 +17,7 @@ import 'package:flutter_project_structure/src/import_graph.dart';
 import 'package:flutter_project_structure/src/metrics_aggregator.dart';
 import 'package:flutter_project_structure/src/project_context.dart';
 import 'package:flutter_project_structure/src/project_type_detector.dart';
+import 'package:flutter_project_structure/src/skeleton_analyzer.dart';
 import 'package:flutter_project_structure/src/todo_comments.dart';
 import 'package:path/path.dart' as path;
 import 'package:yaml/yaml.dart';
@@ -34,6 +35,7 @@ export 'src/generators/mcp_server.dart';
 export 'src/metrics_aggregator.dart';
 export 'src/project_context.dart';
 export 'src/project_type_detector.dart';
+export 'src/skeleton_analyzer.dart';
 
 /// Main class for generating the Flutter project structure.
 class FlutterProjectStructure {
@@ -56,6 +58,7 @@ class FlutterProjectStructure {
   /// [includeFilePurpose]: Whether to classify file purposes (default: true).
   /// [includeMetricsAggregation]: Whether to compute aggregated metrics (default: true).
   /// [includeImportGraph]: Whether to build the file dependency graph (default: true).
+  /// [includeSkeletons]: Whether to extract per-file API skeletons (default: true).
   FlutterProjectStructure({
     this.rootDir = 'lib',
     this.outputFile,
@@ -70,6 +73,7 @@ class FlutterProjectStructure {
     this.includeFilePurpose = true,
     this.includeMetricsAggregation = true,
     this.includeImportGraph = true,
+    this.includeSkeletons = true,
   });
 
   final String rootDir;
@@ -85,6 +89,7 @@ class FlutterProjectStructure {
   final bool includeFilePurpose;
   final bool includeMetricsAggregation;
   final bool includeImportGraph;
+  final bool includeSkeletons;
 
   late final FileStatistics _fileStats;
   late final TodoComments _todoComments;
@@ -97,6 +102,7 @@ class FlutterProjectStructure {
   late final FilePurposeAnalyzer _filePurposeAnalyzer;
   late final MetricsAggregator _metricsAggregator;
   late final ImportGraph _importGraph;
+  late final SkeletonAnalyzer _skeletonAnalyzer;
   late final AnalysisPipeline _pipeline;
 
   /// Runs analysis on the project and returns a populated [ProjectContext].
@@ -231,6 +237,7 @@ class FlutterProjectStructure {
     _filePurposeAnalyzer = FilePurposeAnalyzer();
     _metricsAggregator = MetricsAggregator(_codeMetrics);
     _importGraph = ImportGraph(packageName: packageName);
+    _skeletonAnalyzer = SkeletonAnalyzer();
 
     // Run pre-pipeline detection
     if (includeProjectType) _projectTypeDetector.detect(projectRoot);
@@ -247,6 +254,7 @@ class FlutterProjectStructure {
       if (includeConventions) _conventionAnalyzer,
       if (includeFilePurpose) _filePurposeAnalyzer,
       if (includeImportGraph) _importGraph,
+      if (includeSkeletons) _skeletonAnalyzer,
     ];
     _pipeline = AnalysisPipeline(analyzers, projectRoot: projectRoot);
   }
@@ -281,6 +289,7 @@ class FlutterProjectStructure {
       metricsAggregator:
           includeMetricsAggregation ? _metricsAggregator : null,
       importGraph: includeImportGraph ? _importGraph : null,
+      skeletonAnalyzer: includeSkeletons ? _skeletonAnalyzer : null,
     );
   }
 

@@ -9,6 +9,7 @@ import 'framework_detector.dart';
 import 'import_graph.dart';
 import 'metrics_aggregator.dart';
 import 'project_type_detector.dart';
+import 'skeleton_analyzer.dart';
 import 'todo_comments.dart';
 
 /// Aggregated results from all analyzers after a complete analysis run.
@@ -30,6 +31,7 @@ class ProjectContext {
     this.filePurposeAnalyzer,
     this.metricsAggregator,
     this.importGraph,
+    this.skeletonAnalyzer,
   });
 
   /// The root directory that was analyzed (e.g., 'lib').
@@ -51,4 +53,7 @@ class ProjectContext {
 
   /// File-level dependency graph, for blast-radius and reachability queries.
   final ImportGraph? importGraph;
+
+  /// Per-file API skeletons — declarations without bodies.
+  final SkeletonAnalyzer? skeletonAnalyzer;
 }

@@ -27,8 +27,8 @@ If you're using premium AI agents like **Claude Code with Opus or Sonnet**, thos
 - **Path comments** in every Dart file (`// Path: lib/src/...`) — AI knows where every file sits, zero extra tokens
 - **project_structure.md** — comprehensive directory tree with full analysis
 - **CLAUDE.md** — compact AI-optimized context (<20KB) that agents read automatically
-- **.ai-context/** — 7 structured JSON files, including a file dependency graph
-- **MCP server** — 6 live-query tools for real-time project understanding
+- **.ai-context/** — 8 structured JSON files, including a dependency graph and per-file API skeletons
+- **MCP server** — 8 live-query tools for real-time project understanding
 
 Every command always produces path comments + `project_structure.md` as a baseline. The specific command just adds its own output on top. **One command = full AI-readiness.**
 
@@ -95,6 +95,12 @@ The package runs once (or on each code change with `--watch`), costs zero AI tok
 - Package dependency analysis (AST-based import tracking)
 - Code metrics per file (classes, methods, comment ratio)
 
+### Skeletons (v3.0.0)
+- **API skeletons** — every declaration with its body stripped, **90.6% smaller than the source** on a real 170-file app
+- **Doc summaries** — the author's own one-line description of each declaration, kept alongside the signature
+- Lets an agent hold the shape of a whole project in context and read full bodies only for files it actually edits
+- Strongest for services, models, blocs and repositories; for Flutter widgets the meaning lives in the `build()` body, so the skeleton is a table of contents rather than a summary
+
 ### Import Graph (v3.0.0)
 - **File dependency graph** — nodes are files, edges are `import`, `export` and `part` directives resolved inside the project (including `package:<own_name>/...` self-imports)
 - **Blast radius** — the transitive set of files a change to any file could affect, so you know what to check before editing
@@ -113,8 +119,8 @@ The package runs once (or on each code change with `--watch`), costs zero AI tok
 
 ### AI Output Generators
 - **CLAUDE.md** — AI-optimized project summary (<20KB) with overview, architecture, conventions, dependencies, and code health
-- **.ai-context/** — 7 JSON files: `architecture.json`, `files.json`, `patterns.json`, `conventions.json`, `metrics.json`, `todos.json`, `graph.json`
-- **MCP Server** — 6 live-query tools over stdio JSON-RPC with optional `--watch` mode
+- **.ai-context/** — 8 JSON files: `architecture.json`, `files.json`, `patterns.json`, `conventions.json`, `metrics.json`, `todos.json`, `graph.json`, `skeletons.json`
+- **MCP Server** — 8 live-query tools over stdio JSON-RPC with optional `--watch` mode
 
 ### Single-Pass Architecture
 - **FileAnalyzer interface** — each file is read and parsed once, then distributed to all analyzers
@@ -179,7 +185,7 @@ Also produces: path comments + `project_structure.md`.
 
 #### `ai-context`
 
-The most comprehensive command. Generates everything: `project_structure.md`, `CLAUDE.md`, and 7 structured JSON files in `.ai-context/`.
+The most comprehensive command. Generates everything: `project_structure.md`, `CLAUDE.md`, and 8 structured JSON files in `.ai-context/`.
 
 ```bash
 dart run flutter_project_structure ai-context
@@ -207,7 +213,7 @@ dart run flutter_project_structure mcp-server --watch
 
 With `--watch`, the server re-analyzes when `.dart` files change (2-second debounce). Also produces path comments + `project_structure.md` at startup.
 
-**7 MCP tools exposed:**
+**8 MCP tools exposed:**
 
 | Tool | Description |
 |------|-------------|
@@ -216,6 +222,7 @@ With `--watch`, the server re-analyzes when `.dart` files change (2-second debou
 | `get_dependencies(package?)` | Package dependencies, optionally filtered |
 | `get_conventions` | Naming patterns and suffix adoption rates |
 | `get_todos(severity?)` | TODO/FIXME items, optionally filtered |
+| `get_file_skeleton(path?, paths?)` | A file's declarations without their bodies — ~10% the size of reading it. Use to learn how to *call* a file; read the file to *change* it |
 | `get_file_graph(path?, depth?)` | File dependency graph. No args: size, most depended-upon files, unreachable files. With `path`: what it imports, what imports it, and its blast radius |
 | `get_project_structure(section?)` | Full project structure markdown — returns summary by default, or a specific section (tree, frameworks, architecture, etc.) |
 
@@ -315,8 +322,8 @@ Every command produces (baseline):
 
 Output Generators (added on top):
   |-- ClaudeMdGenerator     -- CLAUDE.md for AI agents (<20KB)
-  |-- AiContextGenerator    -- .ai-context/ (7 JSON files)
-  |-- McpProjectServer      -- MCP server with 6 live-query tools
+  |-- AiContextGenerator    -- .ai-context/ (8 JSON files)
+  |-- McpProjectServer      -- MCP server with 8 live-query tools
 ```
 
 All analyzers implement the `FileAnalyzer` interface. You can build custom analyzers:

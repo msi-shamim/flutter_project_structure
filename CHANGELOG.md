@@ -53,6 +53,31 @@ package exists to produce. The README always documented the correct
 No command or flag was added, removed or renamed. Existing `// Path:` comments
 in your source are rewritten in place on the next run.
 
+### Skeletons (new)
+
+Per-file API surface — every declaration with its body removed. On a real
+170-file Flutter app this is **90.6% smaller than the source** (670 KB → 63 KB),
+so an agent can hold the shape of an entire project in context and read full
+bodies only for the files it actually edits.
+
+- **`SkeletonAnalyzer`** — classes, mixins, extensions, enums, typedefs,
+  constructors, methods and fields, each as a signature without its body.
+  Annotations are kept (`@freezed`, `@Singleton()`) because they carry meaning;
+  doc comments are captured separately as a one-line summary.
+- **`.ai-context/skeletons.json`** — rendered skeleton text per file.
+- **`get_file_skeleton` MCP tool** — accepts `path` or `paths`, so an agent can
+  survey a whole area in one call.
+- Disable with `includeSkeletons: false`.
+
+Deliberately **not** added to `project_structure.md`: that file is already the
+largest artifact, and skeletons are for querying, not for reading end to end.
+
+A skeleton is a map, not a summary. It tells you what a file offers and how to
+call it — not what it does. That distinction matters most for Flutter widgets,
+where the meaning lives in the `build()` body and the skeleton is little more
+than a table of contents. It is strongest for services, models, blocs and
+repositories, whose interface really is most of their meaning.
+
 ### Import Graph (new)
 
 A file-level dependency graph, so an agent can find the *minimal* set of files
@@ -112,9 +137,11 @@ ran from. Running from your project root — the normal case — is unaffected.
   the path they wrote to instead of `void`.
 - `resolveProjectImport(uri, fromPath, packageName:)` — resolves an import URI
   to a project-relative path, or null when it points outside the project.
+- `SkeletonAnalyzer`, `FileSkeleton` and `SkeletonEntry` — per-file API
+  skeletons, with `render()` for the text form an agent reads.
 
 ### Tests
-- Expanded to 69 tests. A `Nested file paths` group covers a deliberately deep
+- Expanded to 78 tests. A `Nested file paths` group covers a deliberately deep
   fixture: one test per analyzer, plus integration checks that no reported path
   is doubled, truncated, backslash-separated, or unresolvable on disk, and that
   the markdown and `.ai-context/` JSON refer to files identically. All ten fail
@@ -122,6 +149,10 @@ ran from. Running from your project root — the normal case — is unaffected.
 - An `Output path resolution` group runs from an unrelated working directory to
   verify each output lands in the project root, and that an explicit path is
   still honoured relative to the current directory.
+- A `Skeletons` group asserts that bodies never leak into a signature, that
+  named parameters survive (a naive cut at the first `{` truncates them), that
+  doc comments are separated rather than folded in, and that local functions
+  are omitted.
 - An `Import graph` group builds a fixture using `package:` self-imports and
   covers edges, the reverse index, depth-bounded blast radius, part-file
   handling and orphan detection; 11 fail against the old blind behaviour.

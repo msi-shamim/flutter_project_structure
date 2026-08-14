@@ -137,7 +137,32 @@ class McpProjectServer {
       callback: (args, extra) => _handleGetFileGraph(args),
     );
 
-    // Tool 7: get_project_structure
+    // Tool 7: get_file_skeleton
+    _server.registerTool(
+      'get_file_skeleton',
+      description:
+          "Get a file's declarations without their bodies — classes, "
+          'constructors, method signatures and fields. Roughly a tenth the '
+          'size of reading the file. Use this to learn how to CALL a file; '
+          'read the file itself only when you need to CHANGE it, or when the '
+          'behaviour inside a body is what matters (Flutter build() methods '
+          'carry their meaning in the body, not the signature). Pass several '
+          'paths at once to survey a whole area cheaply.',
+      inputSchema: JsonObject(
+        properties: {
+          'paths': JsonSchema.array(
+            description: 'Relative file paths to skeletonize.',
+            items: JsonSchema.string(),
+          ),
+          'path': JsonSchema.string(
+            description: 'A single relative file path (alternative to paths).',
+          ),
+        },
+      ),
+      callback: (args, extra) => _handleGetFileSkeleton(args),
+    );
+
+    // Tool 8: get_project_structure
     _server.registerTool(
       'get_project_structure',
       description:
@@ -402,6 +427,62 @@ class McpProjectServer {
     return CallToolResult(
       content: [TextContent(text: _jsonEncoder.convert(data))],
     );
+  }
+
+  CallToolResult _handleGetFileSkeleton(Map<String, dynamic> args) {
+    final analyzer = _context.skeletonAnalyzer;
+    if (analyzer == null) {
+      return CallToolResult(
+        content: [TextContent(text: 'Skeletons are disabled.')],
+        isError: true,
+      );
+    }
+
+    final requested = <String>[
+      if (args['path'] is String) args['path'] as String,
+      ...?(args['paths'] as List?)?.whereType<String>(),
+    ];
+
+    if (requested.isEmpty) {
+      return CallToolResult(
+        content: [
+          TextContent(
+            text: 'Provide "path" or "paths". '
+                '${analyzer.skeletons.length} files are available.',
+          ),
+        ],
+        isError: true,
+      );
+    }
+
+    final known = analyzer.skeletons.keys.toSet();
+    final rendered = <String>[];
+    final missing = <String>[];
+
+    for (final want in requested) {
+      final match = _matchFile(want, known);
+      if (match == null) {
+        missing.add(want);
+      } else {
+        rendered.add(analyzer.skeletons[match]!.render());
+      }
+    }
+
+    if (rendered.isEmpty) {
+      return CallToolResult(
+        content: [
+          TextContent(text: 'No files found in analysis: ${missing.join(', ')}'),
+        ],
+        isError: true,
+      );
+    }
+
+    final text = StringBuffer(rendered.join('\n'));
+    if (missing.isNotEmpty) {
+      text.writeln('\nNot found in analysis: ${missing.join(', ')}');
+    }
+
+    return CallToolResult(content: [TextContent(text: text.toString())]);
   }
 
   /// Resolve a user-supplied path against the analyzed file set, tolerating

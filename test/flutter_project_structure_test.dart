@@ -1025,6 +1025,144 @@ class LoginButtonWidget {}
     });
   });
 
+  group('Skeletons', () {
+    late Directory tempDir;
+
+    setUp(() {
+      tempDir =
+          Directory.systemTemp.createTempSync('flutter_project_structure_sk_');
+      File('${tempDir.path}/pubspec.yaml').writeAsStringSync('name: skel_app\n');
+      Directory('${tempDir.path}/lib').createSync(recursive: true);
+
+      File('${tempDir.path}/lib/service.dart').writeAsStringSync('''
+/// Talks to the API.
+/// Second line should not appear.
+@Singleton()
+class ApiService extends BaseService {
+  ApiService(this.client);
+
+  final Client client;
+
+  /// Fetches a user.
+  Future<User?> fetchUser({required String id, bool cache = true}) async {
+    final wrong = {'not': 'a signature'};
+    return null;
+  }
+
+  void _internal() {
+    void localHelper() {}
+    localHelper();
+  }
+}
+
+enum Status { idle, busy }
+
+String topLevel(int a) => 'x';
+''');
+    });
+
+    tearDown(() => tempDir.deleteSync(recursive: true));
+
+    SkeletonAnalyzer analyze() {
+      final context =
+          FlutterProjectStructure(rootDir: '${tempDir.path}/lib').runAnalysis();
+      return context!.skeletonAnalyzer!;
+    }
+
+    SkeletonEntry find(String signatureFragment) {
+      final skeleton = analyze().skeletons['lib/service.dart']!;
+      SkeletonEntry? hit;
+      void search(List<SkeletonEntry> entries) {
+        for (final e in entries) {
+          if (e.signature.contains(signatureFragment)) hit ??= e;
+          search(e.members);
+        }
+      }
+
+      search(skeleton.declarations);
+      expect(hit, isNotNull,
+          reason: 'no declaration matching "$signatureFragment" in:\n'
+              '${skeleton.render()}');
+      return hit!;
+    }
+
+    test('a method signature excludes its body', () {
+      final method = find('fetchUser');
+
+      expect(method.signature, isNot(contains('not')),
+          reason: 'body leaked into the signature: ${method.signature}');
+      expect(method.signature, isNot(contains('return')));
+    });
+
+    test('named parameters survive — they are not mistaken for the body', () {
+      // Regression: cutting at the first '{' truncated this to "fetchUser(".
+      final method = find('fetchUser');
+
+      expect(method.signature, contains('required String id'));
+      expect(method.signature, contains('bool cache = true'));
+    });
+
+    test('doc comments are separated, not folded into the signature', () {
+      final cls = find('class ApiService');
+
+      expect(cls.signature, isNot(contains('///')));
+      expect(cls.signature, isNot(contains('Talks to the API')));
+      expect(cls.doc, 'Talks to the API.');
+    });
+
+    test('annotations are kept — they carry real meaning', () {
+      expect(find('class ApiService').signature, startsWith('@Singleton()'));
+    });
+
+    test('members nest under their class', () {
+      final skeleton = analyze().skeletons['lib/service.dart']!;
+      final cls = skeleton.declarations
+          .firstWhere((d) => d.signature.contains('class ApiService'));
+
+      expect(cls.kind, 'class');
+      expect(cls.members.map((m) => m.kind),
+          containsAll(['constructor', 'field', 'method']));
+    });
+
+    test('functions local to a body are omitted', () {
+      final skeleton = analyze().skeletons['lib/service.dart']!;
+
+      expect(skeleton.render(), isNot(contains('localHelper')));
+    });
+
+    test('top-level functions and enums are captured', () {
+      expect(find('topLevel').kind, 'function');
+      expect(find('enum Status').kind, 'enum');
+    });
+
+    test('compression is reported and substantial', () {
+      final analyzer = analyze();
+
+      expect(analyzer.sourceLength, greaterThan(0));
+      expect(analyzer.skeletonLength, lessThan(analyzer.sourceLength));
+      expect(analyzer.compressionRatio, greaterThan(20));
+    });
+
+    test('skeletons.json stores rendered text plus a declaration count', () {
+      final context =
+          FlutterProjectStructure(rootDir: '${tempDir.path}/lib').generate()!;
+      AiContextGenerator(context)
+          .generate(outputDir: '${tempDir.path}/.ai-context');
+
+      final json = jsonDecode(File('${tempDir.path}/.ai-context/skeletons.json')
+          .readAsStringSync()) as Map<String, dynamic>;
+      final entry =
+          (json['files'] as Map)['lib/service.dart'] as Map<String, dynamic>;
+
+      expect(json['fileCount'], 1);
+      expect(json['compressionPercent'], greaterThan(0));
+      expect(entry['declarations'], greaterThan(4));
+      expect(entry['skeleton'], contains('class ApiService'));
+      expect(entry['skeleton'], isNot(contains('a signature')),
+          reason: 'no body text should reach the JSON');
+    });
+  });
+
   group('resolveProjectImport', () {
     test('maps a package: self-import to its lib/ path', () {
       expect(
