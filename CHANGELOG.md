@@ -53,6 +53,20 @@ package exists to produce. The README always documented the correct
 No command or flag was added, removed or renamed. Existing `// Path:` comments
 in your source are rewritten in place on the next run.
 
+### Documentation
+
+The README's savings claims are rewritten against measured numbers. It
+previously claimed *"Save 90% of AI tokens"* and *"9x more projects"*, extrapolated
+from an estimated per-session orientation cost. That conflated the orientation
+phase with a whole session; writing code, running tests and iterating are
+untouched by any context file, and on a real task they dominate.
+
+The claim is now *"90% less context to understand your codebase"*, which is what
+the package actually delivers and is reproducible — every project reports its own
+compression ratio in `skeletons.json`. A "what this does and does not do" section
+states the scope plainly, including where skeletons are weak (Flutter widgets,
+whose meaning lives in the `build()` body).
+
 ### Skeletons (new)
 
 Per-file API surface — every declaration with its body removed. On a real

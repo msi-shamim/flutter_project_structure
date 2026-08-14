@@ -7,89 +7,71 @@
 [![license](https://img.shields.io/github/license/msi-shamim/flutter_project_structure)](https://github.com/msi-shamim/flutter_project_structure/blob/main/LICENSE)
 [![GitHub stars](https://img.shields.io/github/stars/msi-shamim/flutter_project_structure?style=social)](https://github.com/msi-shamim/flutter_project_structure)
 
-**Save 90% of AI tokens.** Run one command and every AI agent — Claude Code, Cursor, Copilot — instantly understands your project. No more wasting tokens on exploration. Handle **9x more projects** with the same AI subscription.
+**90% less context to understand your codebase.** One command gives every AI agent — Claude Code, Cursor, Copilot — a complete structural picture of your project: what every file offers, how they connect, and what breaks if you change one. The numbers below are measured on a real app, not estimated.
 
-A Dart package that makes your Flutter/Dart codebase AI-ready. Analyze, document, and visualize your project structure. Generate AI-friendly context files that eliminate the expensive "let me explore your codebase" phase that costs you thousands of tokens every session.
+A Dart package that makes your Flutter/Dart codebase AI-ready. Analyze, document, and visualize your project structure, and generate context files that replace the expensive "let me go read your codebase" phase.
 
-## Why? (The Token Problem)
+## Why? (The Context Problem)
 
-AI agents struggle with large Flutter projects. Every new session, the agent spends **50,000-80,000 tokens** just figuring out your project before writing a single line of useful code:
+Before an agent writes anything useful in your repo, it has to answer three questions:
 
-- Reading dozens of files to understand the directory structure
-- Exploring imports to detect which frameworks you use
-- Asking you about architecture patterns and conventions
-- Repeating all of this in the next session — and the next one
+1. **What is this project?** — stack, architecture, conventions, entry points
+2. **Which files matter for this task?** — and what else depends on them
+3. **What do those files offer?** — the classes and methods it needs to call
 
-If you're using premium AI agents like **Claude Code with Opus or Sonnet**, those orientation tokens add up fast. That's real money burned on exploration instead of actual development.
+Answering those by reading source is expensive, and it starts over every session. `breeze_buy_app`, a real 170-file Flutter app, is **670 KB of Dart — roughly 171,000 tokens** to read end to end. No agent reads all of it, so it opens files semi-blindly until it has enough context, then pays again tomorrow.
 
-**flutter_project_structure** fixes this. One command and your project gets:
-
-- **Path comments** in every Dart file (`// Path: lib/src/...`) — AI knows where every file sits, zero extra tokens
-- **project_structure.md** — comprehensive directory tree with full analysis
-- **CLAUDE.md** — compact AI-optimized context (<20KB) that agents read automatically
-- **.ai-context/** — 8 structured JSON files, including a dependency graph and per-file API skeletons
-- **MCP server** — 8 live-query tools for real-time project understanding
-
-Every command always produces path comments + `project_structure.md` as a baseline. The specific command just adds its own output on top. **One command = full AI-readiness.**
-
-## How It Saves 90% of AI Tokens (Real Math)
-
-Here's a real-world breakdown using a **384-file Flutter production app** (47,526 lines of Dart code, BLoC + Dio + GoRouter + Freezed + Hive):
-
-### Without flutter_project_structure
-
-Every AI session starts with the agent exploring your project from scratch:
-
-| Task | Tool Calls | Tokens Used |
-|------|:----------:|:-----------:|
-| List directories to understand structure | ~8 calls | ~4,000 |
-| Read key files to detect frameworks | ~25 file reads | ~25,000 |
-| Explore imports to map dependencies | ~15 file reads | ~12,000 |
-| Figure out architecture (layers, patterns) | ~10 file reads | ~8,000 |
-| Ask developer about conventions, entry points | ~5 back-and-forth | ~3,000 |
-| Re-read files because context got lost | ~10 file reads | ~8,000 |
-| **Total orientation cost per session** | **~73 calls** | **~60,000 tokens** |
-
-And this repeats **every single session**. 5 sessions a day = **300,000 tokens/day** just on orientation.
-
-### With flutter_project_structure
+## What you get instead
 
 Run once: `dart run flutter_project_structure ai-context`
 
-| Task | Tool Calls | Tokens Used |
-|------|:----------:|:-----------:|
-| AI reads CLAUDE.md (auto-loaded, 4.8KB) | 0 (automatic) | ~1,500 |
-| Path comments already in every file | 0 (embedded) | 0 |
-| Occasional MCP query for specific detail | ~2 calls | ~1,000 |
-| **Total orientation cost per session** | **~2 calls** | **~2,500 tokens** |
+| Artifact | Answers | Measured on `breeze_buy_app` |
+|---|---|---|
+| `CLAUDE.md` | What is this project? | **2.6 KB** (~670 tokens), auto-loaded by Claude Code |
+| `.ai-context/graph.json` | Which files matter, what breaks if I change one | 777 edges across 170 files |
+| `.ai-context/skeletons.json` | What does each file offer | **63 KB vs 670 KB of source — 90.6% smaller** |
 
-### The Math
+The complete structural picture of that app is **~17,000 tokens** instead of ~171,000 to read the source. That is where the 90% comes from, and you can reproduce it by running the tool on your own project — the compression ratio is reported in `skeletons.json`.
+
+### What a skeleton looks like
 
 ```
-Without:  60,000 tokens/session  x  5 sessions/day  =  300,000 tokens/day
-With:      2,500 tokens/session  x  5 sessions/day  =   12,500 tokens/day
-
-Savings:  287,500 tokens/day  =  95.8% reduction
+lib/core/utils/http_base_interceptor.dart
+  class BaseInterceptor extends Interceptor  // base [Interceptor] for [Dio]...
+    @override void onRequest(RequestOptions options, RequestInterceptorHandler handler)
+    @override void onResponse(Response response, ResponseInterceptorHandler handler)
+    @override Future onError(DioException err, ErrorInterceptorHandler handler)
+  class RefreshToken
+    final String access;
+    RefreshToken({required this.access})
 ```
 
-**Conservatively: 90% token savings per project.**
+Enough to *call* that file correctly without opening it. Read the file itself only when you need to *change* it.
 
-### What This Means for Your Wallet
+### And the graph tells you what a change costs
 
-If you're on a **Claude Code subscription** using Opus or Sonnet models:
+```
+get_file_graph(path: "lib/config/colors.dart")
+  importedBy   : 108 files
+  blastRadius  : 134 of 170 files
+```
 
-- **Without this package:** Your token budget covers ~1 project's worth of AI-assisted development
-- **With this package:** The same budget covers **~9 projects** (90% less tokens per project = 9x more capacity)
+## What this does and does not do
 
-The package runs once (or on each code change with `--watch`), costs zero AI tokens, and the generated context files keep paying off every session, every day, for the life of the project.
+The distinction matters, so here it is plainly.
 
-> **One `dart pub add` today saves thousands of dollars in AI tokens over the project lifecycle.**
+**It does:** give an agent complete structural and interface knowledge of your whole project — every file, every public API, every dependency edge — for about a tenth of what reading the source costs. It stops the agent guessing which files to open, and stops it re-deriving your architecture every session.
+
+**It does not:** tell an agent what your code *does*. Behaviour lives in method bodies, and skeletons drop bodies by definition. This is strongest for services, models, blocs and repositories, where the interface really is most of the meaning. It is weakest for Flutter widgets, where the meaning lives in the `build()` body and the skeleton is closer to a table of contents.
+
+Nor does it shrink a whole session. Writing code, running tests and iterating are untouched — and on a real task those usually cost more than context does. What this package removes is the part you were paying for repeatedly and getting nothing new from.
+
 
 ## Features
 
 ### Core Analysis
 - Directory tree visualization in markdown
-- Path comments added to the top of each Dart file for AI navigation
+- Path comments (`// Path: lib/src/...`) added to the top of each Dart file — most useful for RAG-based tools whose indexing chunks files and loses the path; agentic tools like Claude Code already receive a path with every result
 - File statistics (total files, lines of code, largest/smallest files)
 - TODO/FIXME comment scanning with line numbers
 - Package dependency analysis (AST-based import tracking)
