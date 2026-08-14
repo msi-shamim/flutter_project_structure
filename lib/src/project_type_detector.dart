@@ -92,7 +92,8 @@ class ProjectTypeDetector implements FileAnalyzer {
 
   @override
   void analyzeFile(
-      File file, String content, CompilationUnit? compilationUnit) {
+      File file, String content, CompilationUnit? compilationUnit,
+      {required String relativePath}) {
     // No-op: all detection is done in detect()
   }
 

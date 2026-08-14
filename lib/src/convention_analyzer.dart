@@ -52,7 +52,8 @@ class ConventionAnalyzer implements FileAnalyzer {
 
   @override
   void analyzeFile(
-      File file, String content, CompilationUnit? compilationUnit) {
+      File file, String content, CompilationUnit? compilationUnit,
+      {required String relativePath}) {
     _totalFiles++;
 
     // Check file name suffix

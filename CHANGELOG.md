@@ -1,3 +1,65 @@
+## 3.0.0 — Correct File Paths
+
+Every path in every generated output is now correct. Previously, any file nested
+more than one level below the analyzed root was reported under a wrong path —
+which meant AI agents were handed file references that did not exist.
+
+### The Bug
+
+All eight analyzers derived a file's path with
+`path.relative(file.path, from: path.dirname(path.dirname(file.path)))`, which
+takes the parent of the file's *own* directory. That is only correct for files
+sitting directly in `lib/`. Everything deeper silently lost its middle segments:
+
+| File on disk | Reported before | Reported now |
+|---|---|---|
+| `lib/main.dart` | `lib\lib\main.dart` | `lib/main.dart` |
+| `lib/src/widgets/foo_widget.dart` | `lib\widgets\foo_widget.dart` | `lib/src/widgets/foo_widget.dart` |
+
+This affected `// Path:` comments, `project_structure.md`, `CLAUDE.md`,
+`.ai-context/*.json`, and every MCP tool response — the entire surface the
+package exists to produce. The README always documented the correct
+`// Path: lib/src/...` format; the implementation now matches it.
+
+### Fixed
+- **Correct paths everywhere** — paths are now resolved once, relative to the
+  project root (the directory holding `pubspec.yaml`), and reused by every
+  analyzer and generator. All eight call sites shared the same broken formula;
+  there is now a single source of truth, so they cannot drift apart again.
+- **Forward slashes on every platform** — output is byte-identical on Windows
+  and POSIX, so generated files no longer churn in diffs depending on who ran
+  the tool, and paths are directly usable as file references by AI agents.
+- **Test files are classified correctly on Windows** — `FilePurposeAnalyzer`
+  checks for `/test/` in the path, which could never match backslash-separated
+  paths. Fixed as a consequence of the normalization above.
+
+### Breaking Changes
+- `FileAnalyzer.analyzeFile` gained a required named parameter,
+  `{required String relativePath}`. Custom analyzers must accept it and use it
+  for any path they record instead of deriving one from `file.path`.
+- `AnalysisPipeline` now requires a `projectRoot` argument:
+  `AnalysisPipeline(analyzers, projectRoot: projectRoot)`.
+- `addPathComment(File file)` is now `addPathComment(File file, String relativePath)`.
+- Removed four previously `@Deprecated` methods — `FileStatistics.updateFileStats`,
+  `TodoComments.findTodoComments`, `DependencyAnalysis.analyzeDependencies`, and
+  `CodeMetrics.analyzeFileFromDisk`. Each took only a `File` and therefore could
+  not resolve a correct path; use `analyzeFile` (or the pipeline) instead.
+
+The CLI is unchanged — no command, flag, or default behaves differently. Only
+the emitted paths are corrected. Existing `// Path:` comments in your source are
+rewritten in place on the next run.
+
+### New Public API
+- `relativePathFor(File file, String projectRoot)` — computes the canonical,
+  forward-slash, project-root-relative path used throughout the package.
+
+### Tests
+- Expanded to 48 tests, including a `Nested file paths` group covering a
+  deliberately deep fixture: one test per analyzer, plus integration checks that
+  no reported path is doubled, truncated, backslash-separated, or unresolvable
+  on disk, and that the markdown and `.ai-context/` JSON refer to files
+  identically. All ten fail against the old path formula.
+
 ## 2.0.4
 
 - Fixed cross-version analyzer API compatibility (works with analyzer 7.x through 12.x)

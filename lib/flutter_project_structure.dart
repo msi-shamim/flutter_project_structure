@@ -193,8 +193,7 @@ class FlutterProjectStructure {
 
   void _initializeAnalyzers() {
     // Parse pubspec.yaml once for analyzers that need it
-    final projectRoot =
-        path.dirname(path.normalize(path.absolute(rootDir)));
+    final projectRoot = _projectRoot;
     YamlMap? pubspecMap;
     final pubspecFile = File(path.join(projectRoot, 'pubspec.yaml'));
     if (pubspecFile.existsSync()) {
@@ -228,10 +227,11 @@ class FlutterProjectStructure {
       if (includeConventions) _conventionAnalyzer,
       if (includeFilePurpose) _filePurposeAnalyzer,
     ];
-    _pipeline = AnalysisPipeline(analyzers);
+    _pipeline = AnalysisPipeline(analyzers, projectRoot: projectRoot);
   }
 
-  String get _projectRoot =>
+  /// Absolute, normalized path to the directory holding `pubspec.yaml`.
+  late final String _projectRoot =
       path.dirname(path.normalize(path.absolute(rootDir)));
 
   ProjectContext _buildProjectContext() {
@@ -262,7 +262,10 @@ class FlutterProjectStructure {
     final entities = dir.listSync()..sort((a, b) => a.path.compareTo(b.path));
 
     for (final entity in entities) {
-      final relativePath = path.relative(entity.path, from: rootDir);
+      // Always render tree paths with forward slashes so the generated
+      // markdown is identical on Windows and POSIX.
+      final displayPath =
+          path.split(path.relative(entity.path, from: rootDir)).join('/');
       final indent = '  ' * level;
 
       if (entity is File && entity.path.endsWith('.dart')) {
@@ -270,9 +273,9 @@ class FlutterProjectStructure {
         if (path.basename(entity.path).startsWith('._')) continue;
         if (modifyFiles) {
           print('Processing file: ${entity.path}');
-          addPathComment(entity);
+          addPathComment(entity, relativePathFor(entity, _projectRoot));
         }
-        projectStructure.writeln('$indent- 📄 `$relativePath`');
+        projectStructure.writeln('$indent- 📄 `$displayPath`');
         if (modifyFiles) {
           listImports(entity, projectStructure, level + 1);
         }

@@ -2,7 +2,6 @@
 import 'dart:io';
 
 import 'package:analyzer/dart/ast/ast.dart';
-import 'package:path/path.dart' as path;
 import 'package:yaml/yaml.dart';
 
 import 'file_analyzer.dart';
@@ -85,11 +84,9 @@ class FrameworkDetector implements FileAnalyzer {
 
   @override
   void analyzeFile(
-      File file, String content, CompilationUnit? compilationUnit) {
+      File file, String content, CompilationUnit? compilationUnit,
+      {required String relativePath}) {
     if (compilationUnit == null) return;
-
-    final relativePath = path.join('lib',
-        path.relative(file.path, from: path.dirname(path.dirname(file.path))));
 
     // AST superclass-based detection
     for (final declaration in compilationUnit.declarations) {

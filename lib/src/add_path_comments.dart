@@ -3,15 +3,14 @@ import 'dart:io';
 
 import 'package:analyzer/dart/analysis/utilities.dart';
 import 'package:analyzer/dart/ast/ast.dart';
-import 'package:path/path.dart' as path;
 
 /// Adds a path comment to the top of a Dart file.
 ///
-/// The path comment includes the relative path from the 'lib' directory.
-void addPathComment(File file) {
+/// [relativePath] must be the canonical project-root-relative path (see
+/// `relativePathFor`), e.g. `lib/src/widgets/foo_widget.dart`, so the comment
+/// matches the paths reported everywhere else in the generated output.
+void addPathComment(File file, String relativePath) {
   final content = file.readAsStringSync();
-  final relativePath =
-      path.relative(file.path, from: path.dirname(path.dirname(file.path)));
   final comment = '// Path: $relativePath\n';
 
   if (content.startsWith('//')) {

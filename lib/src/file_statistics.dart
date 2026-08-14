@@ -3,7 +3,6 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:analyzer/dart/ast/ast.dart';
-import 'package:path/path.dart' as path;
 
 import 'file_analyzer.dart';
 
@@ -20,14 +19,12 @@ class FileStatistics implements FileAnalyzer {
 
   @override
   void analyzeFile(
-      File file, String content, CompilationUnit? compilationUnit) {
+      File file, String content, CompilationUnit? compilationUnit,
+      {required String relativePath}) {
     totalFiles++;
     dartFiles++;
     final lineCount = LineSplitter.split(content).length;
     totalLines += lineCount;
-
-    final relativePath = path.join('lib',
-        path.relative(file.path, from: path.dirname(path.dirname(file.path))));
 
     if (lineCount > largestFileLines) {
       largestFileLines = lineCount;
@@ -38,13 +35,6 @@ class FileStatistics implements FileAnalyzer {
       smallestFileLines = lineCount;
       smallestFile = relativePath;
     }
-  }
-
-  /// Updates statistics for a single Dart file.
-  @Deprecated('Use analyzeFile instead')
-  void updateFileStats(File file) {
-    final content = file.readAsStringSync();
-    analyzeFile(file, content, null);
   }
 
   @override

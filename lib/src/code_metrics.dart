@@ -1,10 +1,8 @@
 // lib/src/code_metrics.dart
 import 'dart:io';
 
-import 'package:analyzer/dart/analysis/utilities.dart';
 import 'package:analyzer/dart/ast/ast.dart';
 import 'package:analyzer/dart/ast/visitor.dart';
-import 'package:path/path.dart' as path;
 
 import 'file_analyzer.dart';
 
@@ -14,28 +12,19 @@ class CodeMetrics implements FileAnalyzer {
 
   @override
   void analyzeFile(
-      File file, String content, CompilationUnit? compilationUnit) {
+      File file, String content, CompilationUnit? compilationUnit,
+      {required String relativePath}) {
     if (compilationUnit == null) return;
 
     final visitor = _MetricsVisitor();
     compilationUnit.accept(visitor);
 
-    final relativePath = path.join('lib',
-        path.relative(file.path, from: path.dirname(path.dirname(file.path))));
     fileMetrics[relativePath] = FileMetrics(
       linesOfCode: content.split('\n').length,
       classes: visitor.classes,
       methods: visitor.methods,
       commentLines: visitor.commentLines,
     );
-  }
-
-  /// Analyzes a single Dart file and stores its metrics.
-  @Deprecated('Use analyzeFile instead')
-  void analyzeFileFromDisk(File file) {
-    final content = file.readAsStringSync();
-    final result = parseString(content: content);
-    analyzeFile(file, content, result.unit);
   }
 
   @override

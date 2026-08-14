@@ -3,7 +3,6 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:analyzer/dart/ast/ast.dart';
-import 'package:path/path.dart' as path;
 
 import 'file_analyzer.dart';
 
@@ -13,10 +12,9 @@ class TodoComments implements FileAnalyzer {
 
   @override
   void analyzeFile(
-      File file, String content, CompilationUnit? compilationUnit) {
+      File file, String content, CompilationUnit? compilationUnit,
+      {required String relativePath}) {
     final lines = LineSplitter.split(content).toList();
-    final relativePath = path.join('lib',
-        path.relative(file.path, from: path.dirname(path.dirname(file.path))));
 
     for (var i = 0; i < lines.length; i++) {
       final line = lines[i].trim();
@@ -26,13 +24,6 @@ class TodoComments implements FileAnalyzer {
             .add('Line ${i + 1}: $line');
       }
     }
-  }
-
-  /// Finds TODO and FIXME comments in a single Dart file.
-  @Deprecated('Use analyzeFile instead')
-  void findTodoComments(File file) {
-    final content = file.readAsStringSync();
-    analyzeFile(file, content, null);
   }
 
   @override

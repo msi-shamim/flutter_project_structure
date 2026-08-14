@@ -47,10 +47,8 @@ class ArchitectureAnalyzer implements FileAnalyzer {
 
   @override
   void analyzeFile(
-      File file, String content, CompilationUnit? compilationUnit) {
-    final relativePath = path.join('lib',
-        path.relative(file.path, from: path.dirname(path.dirname(file.path))));
-
+      File file, String content, CompilationUnit? compilationUnit,
+      {required String relativePath}) {
     // Detect entry points
     final fileName = path.basename(file.path);
     if (fileName == 'main.dart' ||

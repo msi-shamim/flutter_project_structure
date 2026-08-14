@@ -66,11 +66,8 @@ class TestClass {
       structure.generate();
 
       final content = testFile.readAsStringSync();
-      final expectedPath = path.relative(testFile.path,
-          from: path.dirname(path.dirname(testFile.path)));
-      final expectedComment = '// Path: $expectedPath';
 
-      expect(content.startsWith(expectedComment), isTrue,
+      expect(content.startsWith('// Path: lib/main.dart'), isTrue,
           reason: 'File content does not start with expected comment');
     });
 
@@ -792,6 +789,146 @@ dependencies:
       expect(
           context.frameworkDetector?.detectedFrameworks.containsKey('Provider'),
           isTrue);
+    });
+  });
+
+  group('Nested file paths', () {
+    late Directory tempDir;
+
+    // A deliberately deep tree: every reported path must keep all of its
+    // intermediate segments, not just the file's immediate parent.
+    const nested = 'lib/src/features/auth/widgets/login_button_widget.dart';
+
+    setUp(() {
+      tempDir =
+          Directory.systemTemp.createTempSync('flutter_project_structure_np_');
+      File('${tempDir.path}/pubspec.yaml').writeAsStringSync('''
+name: nested_pkg
+dependencies:
+  provider: ^6.0.0
+''');
+      Directory('${tempDir.path}/lib/src/features/auth/widgets')
+          .createSync(recursive: true);
+      Directory('${tempDir.path}/lib/models').createSync(recursive: true);
+
+      File('${tempDir.path}/lib/main.dart').writeAsStringSync('void main() {}');
+      File('${tempDir.path}/$nested').writeAsStringSync('''
+// TODO: nested todo
+import 'package:provider/provider.dart';
+
+class LoginButtonWidget {}
+''');
+      File('${tempDir.path}/lib/models/user_model.dart')
+          .writeAsStringSync('class UserModel {}');
+    });
+
+    tearDown(() {
+      tempDir.deleteSync(recursive: true);
+    });
+
+    ProjectContext analyze() {
+      final context =
+          FlutterProjectStructure(rootDir: '${tempDir.path}/lib').runAnalysis();
+      expect(context, isNotNull);
+      return context!;
+    }
+
+    test('path comment preserves every intermediate directory', () {
+      FlutterProjectStructure(
+        rootDir: '${tempDir.path}/lib',
+        outputFile: '${tempDir.path}/structure.md',
+      ).generate();
+
+      final content = File('${tempDir.path}/$nested').readAsStringSync();
+
+      expect(content.startsWith('// Path: $nested\n'), isTrue,
+          reason: 'Expected "// Path: $nested" but file starts with: '
+              '${content.split('\n').first}');
+    });
+
+    test('code metrics key the file by its full relative path', () {
+      expect(analyze().codeMetrics.fileMetrics.keys, contains(nested));
+    });
+
+    test('file purposes key the file by its full relative path', () {
+      final purposes = analyze().filePurposeAnalyzer!.filePurposes;
+
+      expect(purposes.keys, contains(nested));
+      expect(purposes[nested], 'widget');
+    });
+
+    test('architecture layers record the full relative path', () {
+      final arch = analyze().architectureAnalyzer!;
+
+      expect(arch.layerFiles['Widget'], contains(nested));
+      expect(arch.entryPoints, contains('lib/main.dart'));
+    });
+
+    test('todo comments key the file by its full relative path', () {
+      expect(analyze().todoComments.todoComments.keys, contains(nested));
+    });
+
+    test('dependency analysis records the full relative path', () {
+      expect(analyze().dependencyAnalysis.packageDependencies['provider'],
+          contains(nested));
+    });
+
+    test('framework detection evidence uses the full relative path', () {
+      final frameworks = analyze().frameworkDetector!.detectedFrameworks;
+
+      expect(frameworks['Provider']!.fileEvidence, contains(nested));
+    });
+
+    test('file statistics record the full relative path', () {
+      final stats = analyze().fileStatistics;
+
+      expect(stats.largestFile, nested,
+          reason: 'The nested file is the longest in this fixture');
+    });
+
+    test('no reported path is doubled or truncated', () {
+      final context = analyze();
+
+      final allPaths = <String>{
+        ...context.codeMetrics.fileMetrics.keys,
+        ...context.filePurposeAnalyzer!.filePurposes.keys,
+        ...context.architectureAnalyzer!.entryPoints,
+        ...context.architectureAnalyzer!.layerFiles.values.expand((e) => e),
+        ...context.todoComments.todoComments.keys,
+        ...context.dependencyAnalysis.packageDependencies.values
+            .expand((e) => e),
+      };
+
+      expect(allPaths, isNotEmpty);
+      for (final p in allPaths) {
+        expect(p, startsWith('lib/'),
+            reason: '"$p" should be relative to the project root');
+        expect(p, isNot(startsWith('lib/lib/')),
+            reason: '"$p" has a doubled root segment');
+        expect(p, isNot(contains(r'\')),
+            reason: '"$p" must use forward slashes on every platform');
+        expect(File(path.join(tempDir.path, p)).existsSync(), isTrue,
+            reason: '"$p" does not resolve to a real file on disk');
+      }
+    });
+
+    test('generated markdown and JSON refer to the file identically', () {
+      final context = FlutterProjectStructure(
+        rootDir: '${tempDir.path}/lib',
+        outputFile: '${tempDir.path}/structure.md',
+      ).generate()!;
+
+      final markdown = File('${tempDir.path}/structure.md').readAsStringSync();
+      expect(markdown, contains(nested));
+      expect(markdown, isNot(contains('lib/lib/')));
+
+      AiContextGenerator(context)
+          .generate(outputDir: '${tempDir.path}/.ai-context');
+      final filesJson = jsonDecode(
+              File('${tempDir.path}/.ai-context/files.json').readAsStringSync())
+          as Map<String, dynamic>;
+
+      expect((filesJson['files'] as Map).keys, contains(nested));
     });
   });
 }
