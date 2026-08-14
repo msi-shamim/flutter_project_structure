@@ -27,7 +27,7 @@ If you're using premium AI agents like **Claude Code with Opus or Sonnet**, thos
 - **Path comments** in every Dart file (`// Path: lib/src/...`) — AI knows where every file sits, zero extra tokens
 - **project_structure.md** — comprehensive directory tree with full analysis
 - **CLAUDE.md** — compact AI-optimized context (<20KB) that agents read automatically
-- **.ai-context/** — 6 structured JSON files for programmatic querying
+- **.ai-context/** — 7 structured JSON files, including a file dependency graph
 - **MCP server** — 6 live-query tools for real-time project understanding
 
 Every command always produces path comments + `project_structure.md` as a baseline. The specific command just adds its own output on top. **One command = full AI-readiness.**
@@ -95,6 +95,13 @@ The package runs once (or on each code change with `--watch`), costs zero AI tok
 - Package dependency analysis (AST-based import tracking)
 - Code metrics per file (classes, methods, comment ratio)
 
+### Import Graph (v3.0.0)
+- **File dependency graph** — nodes are files, edges are `import`, `export` and `part` directives resolved inside the project (including `package:<own_name>/...` self-imports)
+- **Blast radius** — the transitive set of files a change to any file could affect, so you know what to check before editing
+- **Forward closure** — everything a file needs to work
+- **Dead-code candidates** — files unreachable from any entry point
+- **Hubs** — the most depended-upon files, i.e. the riskiest to change
+
 ### Smart Detection (v3.0.0)
 - **Project Type** — monorepo, plugin, flutter_app, or dart_package
 - **10 Frameworks** — GetX, Riverpod, Bloc/Cubit, Provider, Dio, GoRouter, AutoRoute, Freezed, Hive, Drift (detected via pubspec + imports + AST superclass matching)
@@ -106,7 +113,7 @@ The package runs once (or on each code change with `--watch`), costs zero AI tok
 
 ### AI Output Generators
 - **CLAUDE.md** — AI-optimized project summary (<20KB) with overview, architecture, conventions, dependencies, and code health
-- **.ai-context/** — 6 JSON files: `architecture.json`, `files.json`, `patterns.json`, `conventions.json`, `metrics.json`, `todos.json`
+- **.ai-context/** — 7 JSON files: `architecture.json`, `files.json`, `patterns.json`, `conventions.json`, `metrics.json`, `todos.json`, `graph.json`
 - **MCP Server** — 6 live-query tools over stdio JSON-RPC with optional `--watch` mode
 
 ### Single-Pass Architecture
@@ -172,7 +179,7 @@ Also produces: path comments + `project_structure.md`.
 
 #### `ai-context`
 
-The most comprehensive command. Generates everything: `project_structure.md`, `CLAUDE.md`, and 6 structured JSON files in `.ai-context/`.
+The most comprehensive command. Generates everything: `project_structure.md`, `CLAUDE.md`, and 7 structured JSON files in `.ai-context/`.
 
 ```bash
 dart run flutter_project_structure ai-context
@@ -200,7 +207,7 @@ dart run flutter_project_structure mcp-server --watch
 
 With `--watch`, the server re-analyzes when `.dart` files change (2-second debounce). Also produces path comments + `project_structure.md` at startup.
 
-**6 MCP tools exposed:**
+**7 MCP tools exposed:**
 
 | Tool | Description |
 |------|-------------|
@@ -209,6 +216,7 @@ With `--watch`, the server re-analyzes when `.dart` files change (2-second debou
 | `get_dependencies(package?)` | Package dependencies, optionally filtered |
 | `get_conventions` | Naming patterns and suffix adoption rates |
 | `get_todos(severity?)` | TODO/FIXME items, optionally filtered |
+| `get_file_graph(path?, depth?)` | File dependency graph. No args: size, most depended-upon files, unreachable files. With `path`: what it imports, what imports it, and its blast radius |
 | `get_project_structure(section?)` | Full project structure markdown — returns summary by default, or a specific section (tree, frameworks, architecture, etc.) |
 
 **Configure in Claude Code:**
@@ -307,7 +315,7 @@ Every command produces (baseline):
 
 Output Generators (added on top):
   |-- ClaudeMdGenerator     -- CLAUDE.md for AI agents (<20KB)
-  |-- AiContextGenerator    -- .ai-context/ (6 JSON files)
+  |-- AiContextGenerator    -- .ai-context/ (7 JSON files)
   |-- McpProjectServer      -- MCP server with 6 live-query tools
 ```
 

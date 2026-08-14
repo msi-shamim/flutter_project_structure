@@ -39,6 +39,8 @@ package exists to produce. The README always documented the correct
   for any path they record instead of deriving one from `file.path`.
 - `AnalysisPipeline` now requires a `projectRoot` argument:
   `AnalysisPipeline(analyzers, projectRoot: projectRoot)`.
+- `ArchitectureAnalyzer` now requires a `packageName` argument, without which
+  it cannot resolve `package:<own_name>/...` self-imports.
 - `addPathComment(File file)` is now `addPathComment(File file, String relativePath)`.
 - Removed four previously `@Deprecated` methods — `FileStatistics.updateFileStats`,
   `TodoComments.findTodoComments`, `DependencyAnalysis.analyzeDependencies`, and
@@ -50,6 +52,39 @@ package exists to produce. The README always documented the correct
 
 No command or flag was added, removed or renamed. Existing `// Path:` comments
 in your source are rewritten in place on the next run.
+
+### Import Graph (new)
+
+A file-level dependency graph, so an agent can find the *minimal* set of files
+relevant to an edit instead of exploring to find them.
+
+- **`ImportGraph`** — nodes are files, edges are `import`, `export` and `part`
+  directives that resolve inside the project. Queries: `dependentsOf` (blast
+  radius of a change), `dependenciesOf` (forward closure), `unreachableFrom`
+  (dead-code candidates), and `hubs` (most depended-upon files).
+- **`.ai-context/graph.json`** — full forward and reverse indexes, hubs and
+  unreachable files.
+- **`get_file_graph` MCP tool** — whole-graph summary with no arguments; with a
+  `path`, returns that file's imports, importers and blast radius, optionally
+  bounded by `depth`.
+- **`## Import Graph`** section in `project_structure.md`.
+- Disable with `includeImportGraph: false`.
+
+### Fixed: `package:` self-imports were invisible
+
+`ArchitectureAnalyzer` skipped every `package:` URI, so it only ever saw
+relative imports. Modern Flutter projects import their own files as
+`package:<own_name>/foo.dart`, which meant the layer dependency graph was
+**empty** for them — the "Layer Dependencies" section silently rendered nothing
+rather than reporting a problem.
+
+On a real 170-file app this was **0 of 763 intra-project edges captured**. It
+now resolves `package:<own_name>/x.dart` to `lib/x.dart` and finds all 777
+edges (imports, exports and parts), and the layer graph is populated.
+
+`part` directives count as edges deliberately: a part is compiled into its
+parent and referenced nowhere else, so omitting them made every Bloc state and
+every `.freezed.dart` file look like dead code.
 
 ### Output Locations
 Outputs now default to the **project root** (beside `pubspec.yaml`) instead of
@@ -75,9 +110,11 @@ ran from. Running from your project root — the normal case — is unaffected.
   writes the markdown to.
 - `ClaudeMdGenerator.generate()` and `AiContextGenerator.generate()` now return
   the path they wrote to instead of `void`.
+- `resolveProjectImport(uri, fromPath, packageName:)` — resolves an import URI
+  to a project-relative path, or null when it points outside the project.
 
 ### Tests
-- Expanded to 53 tests. A `Nested file paths` group covers a deliberately deep
+- Expanded to 69 tests. A `Nested file paths` group covers a deliberately deep
   fixture: one test per analyzer, plus integration checks that no reported path
   is doubled, truncated, backslash-separated, or unresolvable on disk, and that
   the markdown and `.ai-context/` JSON refer to files identically. All ten fail
@@ -85,6 +122,9 @@ ran from. Running from your project root — the normal case — is unaffected.
 - An `Output path resolution` group runs from an unrelated working directory to
   verify each output lands in the project root, and that an explicit path is
   still honoured relative to the current directory.
+- An `Import graph` group builds a fixture using `package:` self-imports and
+  covers edges, the reverse index, depth-bounded blast radius, part-file
+  handling and orphan detection; 11 fail against the old blind behaviour.
 - Verified against a real 170-file Flutter project nested 7 levels deep. Before
   this release, 145 of its 161 reported paths pointed at files that did not
   exist and 9 files were dropped from the analysis entirely by key collisions;

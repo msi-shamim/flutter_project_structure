@@ -5,10 +5,17 @@ import 'package:analyzer/dart/ast/ast.dart';
 import 'package:path/path.dart' as path;
 
 import 'file_analyzer.dart';
+import 'import_graph.dart';
 
 /// Detects architectural layers from directory naming conventions
 /// and builds an import dependency graph between layers.
 class ArchitectureAnalyzer implements FileAnalyzer {
+  ArchitectureAnalyzer({required this.packageName});
+
+  /// The `name:` field from pubspec.yaml, needed to resolve the
+  /// `package:<own_name>/...` self-imports most Flutter projects use.
+  final String? packageName;
+
   final Map<String, List<String>> layerFiles = {};
   final Map<String, Set<String>> layerImports = {};
   final List<String> entryPoints = [];
@@ -66,22 +73,19 @@ class ArchitectureAnalyzer implements FileAnalyzer {
     // Build import graph between layers
     if (compilationUnit != null && thisLayer != null) {
       for (final directive in compilationUnit.directives) {
-        if (directive is ImportDirective) {
-          final uri = directive.uri.stringValue;
-          if (uri == null) continue;
+        if (directive is! ImportDirective) continue;
+        final uri = directive.uri.stringValue;
+        if (uri == null) continue;
 
-          // Skip dart: and package: imports (only analyze relative imports)
-          if (uri.startsWith('dart:') || uri.startsWith('package:')) continue;
+        // Resolves both relative imports and package:<own_name>/... imports;
+        // returns null for dart: and genuine third-party packages.
+        final resolvedPath =
+            resolveProjectImport(uri, relativePath, packageName: packageName);
+        if (resolvedPath == null) continue;
 
-          // Resolve relative import path
-          final resolvedPath = path.normalize(
-              path.join(path.dirname(relativePath), uri));
-          final targetLayer = _classifyPath(resolvedPath);
-          if (targetLayer != null && targetLayer != thisLayer) {
-            layerImports
-                .putIfAbsent(thisLayer, () => {})
-                .add(targetLayer);
-          }
+        final targetLayer = _classifyPath(resolvedPath);
+        if (targetLayer != null && targetLayer != thisLayer) {
+          layerImports.putIfAbsent(thisLayer, () => {}).add(targetLayer);
         }
       }
     }

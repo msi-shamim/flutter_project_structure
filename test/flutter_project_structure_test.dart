@@ -1024,4 +1024,187 @@ class LoginButtonWidget {}
       expect((filesJson['files'] as Map).keys, contains(nested));
     });
   });
+
+  group('resolveProjectImport', () {
+    test('maps a package: self-import to its lib/ path', () {
+      expect(
+          resolveProjectImport('package:my_app/core/colors.dart', 'lib/a.dart',
+              packageName: 'my_app'),
+          'lib/core/colors.dart');
+    });
+
+    test('returns null for a genuine third-party package', () {
+      expect(
+          resolveProjectImport('package:flutter/material.dart', 'lib/a.dart',
+              packageName: 'my_app'),
+          isNull);
+    });
+
+    test('returns null for dart: URIs', () {
+      expect(
+          resolveProjectImport('dart:async', 'lib/a.dart',
+              packageName: 'my_app'),
+          isNull);
+    });
+
+    test('resolves a relative import against the importing file', () {
+      expect(
+          resolveProjectImport('../core/colors.dart',
+              'lib/modules/home/page.dart',
+              packageName: 'my_app'),
+          'lib/modules/core/colors.dart');
+    });
+
+    test('returns null for package: URIs when the package name is unknown', () {
+      expect(
+          resolveProjectImport('package:my_app/a.dart', 'lib/b.dart',
+              packageName: null),
+          isNull);
+    });
+  });
+
+  group('Import graph', () {
+    late Directory tempDir;
+
+    // Deliberately uses package:<own_name>/... self-imports rather than
+    // relative ones — the dominant Flutter convention, and the case the
+    // graph was previously blind to.
+    setUp(() {
+      tempDir =
+          Directory.systemTemp.createTempSync('flutter_project_structure_ig_');
+      File('${tempDir.path}/pubspec.yaml')
+          .writeAsStringSync('name: graph_app\n');
+      Directory('${tempDir.path}/lib/core').createSync(recursive: true);
+      Directory('${tempDir.path}/lib/ui').createSync(recursive: true);
+
+      File('${tempDir.path}/lib/main.dart').writeAsStringSync('''
+import 'package:graph_app/ui/home.dart';
+void main() {}
+''');
+      File('${tempDir.path}/lib/ui/home.dart').writeAsStringSync('''
+import 'package:graph_app/core/colors.dart';
+import 'package:flutter/material.dart';
+class Home {}
+''');
+      File('${tempDir.path}/lib/core/colors.dart')
+          .writeAsStringSync('class Colors {}');
+      // Reachable only via a part directive.
+      File('${tempDir.path}/lib/core/cubit.dart').writeAsStringSync('''
+import 'package:graph_app/core/colors.dart';
+part 'cubit_state.dart';
+class Cubit {}
+''');
+      File('${tempDir.path}/lib/core/cubit_state.dart')
+          .writeAsStringSync("part of 'cubit.dart';\nclass CubitState {}");
+      // Genuinely orphaned.
+      File('${tempDir.path}/lib/core/orphan.dart')
+          .writeAsStringSync('class Orphan {}');
+    });
+
+    tearDown(() => tempDir.deleteSync(recursive: true));
+
+    ImportGraph graphOf() {
+      final context =
+          FlutterProjectStructure(rootDir: '${tempDir.path}/lib').runAnalysis();
+      return context!.importGraph!;
+    }
+
+    test('captures package:<own_name>/... self-imports as edges', () {
+      final graph = graphOf();
+
+      expect(graph.imports['lib/main.dart'], contains('lib/ui/home.dart'));
+      expect(graph.imports['lib/ui/home.dart'],
+          contains('lib/core/colors.dart'));
+    });
+
+    test('excludes third-party packages from the graph', () {
+      // home.dart imports package:flutter/material.dart, which is not ours.
+      expect(graphOf().imports['lib/ui/home.dart'], hasLength(1));
+    });
+
+    test('builds the reverse index', () {
+      final graph = graphOf();
+
+      expect(graph.importedBy['lib/core/colors.dart'],
+          containsAll(['lib/ui/home.dart', 'lib/core/cubit.dart']));
+    });
+
+    test('dependentsOf walks transitively — the blast radius', () {
+      // colors <- home <- main
+      expect(graphOf().dependentsOf('lib/core/colors.dart'),
+          containsAll(['lib/ui/home.dart', 'lib/main.dart']));
+    });
+
+    test('dependentsOf honours maxDepth', () {
+      final oneHop =
+          graphOf().dependentsOf('lib/core/colors.dart', maxDepth: 1);
+
+      expect(oneHop, contains('lib/ui/home.dart'));
+      expect(oneHop, isNot(contains('lib/main.dart')),
+          reason: 'main.dart is two hops away');
+    });
+
+    test('dependenciesOf walks the forward closure', () {
+      expect(graphOf().dependenciesOf('lib/main.dart'),
+          containsAll(['lib/ui/home.dart', 'lib/core/colors.dart']));
+    });
+
+    test('part files count as edges, so they are not false-positive orphans',
+        () {
+      final graph = graphOf();
+
+      expect(graph.imports['lib/core/cubit.dart'],
+          contains('lib/core/cubit_state.dart'));
+      expect(graph.unreachableFrom(['lib/core/cubit.dart']),
+          isNot(contains('lib/core/cubit_state.dart')));
+    });
+
+    test('unreachableFrom finds genuinely orphaned files', () {
+      final unreachable = graphOf().unreachableFrom(['lib/main.dart']);
+
+      expect(unreachable, contains('lib/core/orphan.dart'));
+      expect(unreachable, isNot(contains('lib/ui/home.dart')));
+      expect(unreachable, isNot(contains('lib/core/colors.dart')));
+    });
+
+    test('hubs rank the most depended-upon files first', () {
+      expect(graphOf().hubs(limit: 1).single.key, 'lib/core/colors.dart');
+    });
+
+    test('architecture layer dependencies see package: imports too', () {
+      // Regression: layerImports was empty for any project using
+      // package:<own_name>/... imports, which is most of them.
+      Directory('${tempDir.path}/lib/models').createSync(recursive: true);
+      Directory('${tempDir.path}/lib/services').createSync(recursive: true);
+      File('${tempDir.path}/lib/models/user.dart')
+          .writeAsStringSync('class User {}');
+      File('${tempDir.path}/lib/services/api.dart').writeAsStringSync('''
+import 'package:graph_app/models/user.dart';
+class Api {}
+''');
+
+      final context =
+          FlutterProjectStructure(rootDir: '${tempDir.path}/lib').runAnalysis();
+
+      expect(context!.architectureAnalyzer!.layerImports['Service'],
+          contains('Model'));
+    });
+
+    test('graph.json is emitted with nodes, edges and hubs', () {
+      final context =
+          FlutterProjectStructure(rootDir: '${tempDir.path}/lib').generate()!;
+      AiContextGenerator(context)
+          .generate(outputDir: '${tempDir.path}/.ai-context');
+
+      final json = jsonDecode(
+              File('${tempDir.path}/.ai-context/graph.json').readAsStringSync())
+          as Map<String, dynamic>;
+
+      expect(json['nodeCount'], 6);
+      expect(json['edgeCount'], greaterThan(0));
+      expect((json['imports'] as Map).keys, contains('lib/main.dart'));
+      expect((json['hubs'] as List).first['file'], 'lib/core/colors.dart');
+      expect(json['unreachable'], contains('lib/core/orphan.dart'));
+    });
+  });
 }

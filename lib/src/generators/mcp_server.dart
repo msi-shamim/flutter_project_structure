@@ -112,7 +112,32 @@ class McpProjectServer {
       callback: (args, extra) => _handleGetTodos(args),
     );
 
-    // Tool 6: get_project_structure
+    // Tool 6: get_file_graph
+    _server.registerTool(
+      'get_file_graph',
+      description:
+          'Query the file dependency graph. With no path, returns a summary '
+          '(size, most depended-upon files, unreachable files). With a path, '
+          'returns what that file imports, what imports it, and its blast '
+          'radius — the transitive set of files a change to it could affect. '
+          'Use this to find the minimal set of files relevant to an edit.',
+      inputSchema: JsonObject(
+        properties: {
+          'path': JsonSchema.string(
+            description: 'Relative file path (e.g. lib/src/main.dart). '
+                'Omit for a whole-graph summary.',
+          ),
+          'depth': JsonSchema.integer(
+            description:
+                'How far to walk the graph for the blast radius. '
+                'Omit for the full transitive closure.',
+          ),
+        },
+      ),
+      callback: (args, extra) => _handleGetFileGraph(args),
+    );
+
+    // Tool 7: get_project_structure
     _server.registerTool(
       'get_project_structure',
       description:
@@ -315,6 +340,79 @@ class McpProjectServer {
     return CallToolResult(
       content: [TextContent(text: _jsonEncoder.convert(data))],
     );
+  }
+
+  CallToolResult _handleGetFileGraph(Map<String, dynamic> args) {
+    final graph = _context.importGraph;
+    if (graph == null) {
+      return CallToolResult(
+        content: [TextContent(text: 'Import graph is disabled.')],
+        isError: true,
+      );
+    }
+
+    final requested = args['path'] as String?;
+    final depth = args['depth'] as int?;
+
+    // No path → whole-graph summary.
+    if (requested == null) {
+      final entryPoints =
+          _context.architectureAnalyzer?.entryPoints ?? const <String>[];
+      final unreachable = graph.unreachableFrom(entryPoints).toList()..sort();
+
+      final data = {
+        'nodeCount': graph.files.length,
+        'edgeCount': graph.edgeCount,
+        'entryPoints': entryPoints,
+        'hubs': graph
+            .hubs()
+            .map((e) => {'file': e.key, 'importedBy': e.value})
+            .toList(),
+        'unreachableCount': unreachable.length,
+        'unreachable': unreachable.take(20).toList(),
+        'hint': 'Pass "path" to get one file\'s dependencies, dependents '
+            'and blast radius.',
+      };
+      return CallToolResult(
+        content: [TextContent(text: _jsonEncoder.convert(data))],
+      );
+    }
+
+    final file = _matchFile(requested, graph.files);
+    if (file == null) {
+      return CallToolResult(
+        content: [
+          TextContent(text: 'File not found in analysis: $requested'),
+        ],
+        isError: true,
+      );
+    }
+
+    final blastRadius = graph.dependentsOf(file, maxDepth: depth).toList()
+      ..sort();
+    final data = {
+      'path': file,
+      'imports': (graph.imports[file]?.toList() ?? <String>[])..sort(),
+      'importedBy': (graph.importedBy[file]?.toList() ?? <String>[])..sort(),
+      'blastRadius': blastRadius,
+      'blastRadiusCount': blastRadius.length,
+      if (depth != null) 'depth': depth,
+    };
+
+    return CallToolResult(
+      content: [TextContent(text: _jsonEncoder.convert(data))],
+    );
+  }
+
+  /// Resolve a user-supplied path against the analyzed file set, tolerating
+  /// separator and normalisation differences.
+  String? _matchFile(String requested, Set<String> known) {
+    final normalized = path.split(path.normalize(requested)).join('/');
+    if (known.contains(normalized)) return normalized;
+    for (final candidate in known) {
+      if (path.equals(candidate, normalized)) return candidate;
+    }
+    return null;
   }
 
   CallToolResult _handleGetProjectStructure(Map<String, dynamic> args) {

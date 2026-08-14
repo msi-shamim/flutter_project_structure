@@ -31,8 +31,42 @@ class AiContextGenerator {
     _writeConventionsJson(dir);
     _writeMetricsJson(dir);
     _writeTodosJson(dir);
+    _writeGraphJson(dir);
 
     return dir;
+  }
+
+  void _writeGraphJson(String dir) {
+    final graph = _context.importGraph;
+    final entryPoints = _context.architectureAnalyzer?.entryPoints ?? const [];
+
+    final imports = <String, dynamic>{};
+    final importedBy = <String, dynamic>{};
+    if (graph != null) {
+      for (final entry in graph.imports.entries) {
+        imports[entry.key] = entry.value.toList()..sort();
+      }
+      for (final entry in graph.importedBy.entries) {
+        importedBy[entry.key] = entry.value.toList()..sort();
+      }
+    }
+
+    final data = <String, dynamic>{
+      'nodeCount': graph?.files.length ?? 0,
+      'edgeCount': graph?.edgeCount ?? 0,
+      // Highest-risk files to change: the most depended-upon.
+      'hubs': (graph?.hubs() ?? [])
+          .map((e) => {'file': e.key, 'importedBy': e.value})
+          .toList(),
+      'unreachable': graph == null
+          ? <String>[]
+          : (graph.unreachableFrom(entryPoints).toList()..sort()),
+      'imports': imports,
+      'importedBy': importedBy,
+    };
+
+    File(path.join(dir, 'graph.json'))
+        .writeAsStringSync(_jsonEncoder.convert(data));
   }
 
   void _writeArchitectureJson(String dir) {

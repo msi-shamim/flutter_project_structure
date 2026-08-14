@@ -13,6 +13,7 @@ import 'package:flutter_project_structure/src/file_analyzer.dart';
 import 'package:flutter_project_structure/src/file_purpose_analyzer.dart';
 import 'package:flutter_project_structure/src/file_statistics.dart';
 import 'package:flutter_project_structure/src/framework_detector.dart';
+import 'package:flutter_project_structure/src/import_graph.dart';
 import 'package:flutter_project_structure/src/metrics_aggregator.dart';
 import 'package:flutter_project_structure/src/project_context.dart';
 import 'package:flutter_project_structure/src/project_type_detector.dart';
@@ -26,6 +27,7 @@ export 'src/convention_analyzer.dart';
 export 'src/file_analyzer.dart';
 export 'src/file_purpose_analyzer.dart';
 export 'src/framework_detector.dart';
+export 'src/import_graph.dart';
 export 'src/generators/ai_context_generator.dart';
 export 'src/generators/claude_md_generator.dart';
 export 'src/generators/mcp_server.dart';
@@ -53,6 +55,7 @@ class FlutterProjectStructure {
   /// [includeConventions]: Whether to analyze naming conventions (default: true).
   /// [includeFilePurpose]: Whether to classify file purposes (default: true).
   /// [includeMetricsAggregation]: Whether to compute aggregated metrics (default: true).
+  /// [includeImportGraph]: Whether to build the file dependency graph (default: true).
   FlutterProjectStructure({
     this.rootDir = 'lib',
     this.outputFile,
@@ -66,6 +69,7 @@ class FlutterProjectStructure {
     this.includeConventions = true,
     this.includeFilePurpose = true,
     this.includeMetricsAggregation = true,
+    this.includeImportGraph = true,
   });
 
   final String rootDir;
@@ -80,6 +84,7 @@ class FlutterProjectStructure {
   final bool includeConventions;
   final bool includeFilePurpose;
   final bool includeMetricsAggregation;
+  final bool includeImportGraph;
 
   late final FileStatistics _fileStats;
   late final TodoComments _todoComments;
@@ -91,6 +96,7 @@ class FlutterProjectStructure {
   late final ConventionAnalyzer _conventionAnalyzer;
   late final FilePurposeAnalyzer _filePurposeAnalyzer;
   late final MetricsAggregator _metricsAggregator;
+  late final ImportGraph _importGraph;
   late final AnalysisPipeline _pipeline;
 
   /// Runs analysis on the project and returns a populated [ProjectContext].
@@ -120,6 +126,7 @@ class FlutterProjectStructure {
     _processDirectory(libDir, projectStructure, 0, modifyFiles: false);
 
     if (includeMetricsAggregation) _metricsAggregator.aggregate();
+    if (includeImportGraph) _importGraph.build();
 
     if (includeProjectType) _addProjectType(projectStructure);
     if (includeFrameworkDetection) _addFrameworkDetection(projectStructure);
@@ -131,6 +138,7 @@ class FlutterProjectStructure {
     if (includeConventions) _addConventions(projectStructure);
     if (includeFilePurpose) _addFilePurpose(projectStructure);
     if (includeMetricsAggregation) _addMetricsAggregation(projectStructure);
+    if (includeImportGraph) _addImportGraph(projectStructure);
 
     return projectStructure.toString();
   }
@@ -156,6 +164,7 @@ class FlutterProjectStructure {
 
     // Post-pipeline aggregation
     if (includeMetricsAggregation) _metricsAggregator.aggregate();
+    if (includeImportGraph) _importGraph.build();
 
     // Append analysis sections
     if (includeProjectType) _addProjectType(projectStructure);
@@ -168,6 +177,7 @@ class FlutterProjectStructure {
     if (includeConventions) _addConventions(projectStructure);
     if (includeFilePurpose) _addFilePurpose(projectStructure);
     if (includeMetricsAggregation) _addMetricsAggregation(projectStructure);
+    if (includeImportGraph) _addImportGraph(projectStructure);
 
     File(outputFilePath).writeAsStringSync(projectStructure.toString());
     print('Finished processing files.');
@@ -191,6 +201,7 @@ class FlutterProjectStructure {
 
     // Post-pipeline aggregation
     if (includeMetricsAggregation) _metricsAggregator.aggregate();
+    if (includeImportGraph) _importGraph.build();
 
     return _buildProjectContext();
   }
@@ -209,12 +220,17 @@ class FlutterProjectStructure {
     _todoComments = TodoComments();
     _dependencyAnalysis = DependencyAnalysis();
     _codeMetrics = CodeMetrics();
+    // A project refers to its own files as package:<name>/..., so the
+    // package name is what makes those imports resolvable.
+    final packageName = pubspecMap?['name'] as String?;
+
     _projectTypeDetector = ProjectTypeDetector(pubspecMap);
     _frameworkDetector = FrameworkDetector(pubspecMap);
-    _architectureAnalyzer = ArchitectureAnalyzer();
+    _architectureAnalyzer = ArchitectureAnalyzer(packageName: packageName);
     _conventionAnalyzer = ConventionAnalyzer();
     _filePurposeAnalyzer = FilePurposeAnalyzer();
     _metricsAggregator = MetricsAggregator(_codeMetrics);
+    _importGraph = ImportGraph(packageName: packageName);
 
     // Run pre-pipeline detection
     if (includeProjectType) _projectTypeDetector.detect(projectRoot);
@@ -230,6 +246,7 @@ class FlutterProjectStructure {
       if (includeArchitecture) _architectureAnalyzer,
       if (includeConventions) _conventionAnalyzer,
       if (includeFilePurpose) _filePurposeAnalyzer,
+      if (includeImportGraph) _importGraph,
     ];
     _pipeline = AnalysisPipeline(analyzers, projectRoot: projectRoot);
   }
@@ -263,6 +280,7 @@ class FlutterProjectStructure {
           includeFilePurpose ? _filePurposeAnalyzer : null,
       metricsAggregator:
           includeMetricsAggregation ? _metricsAggregator : null,
+      importGraph: includeImportGraph ? _importGraph : null,
     );
   }
 
@@ -350,5 +368,10 @@ class FlutterProjectStructure {
   void _addMetricsAggregation(StringBuffer projectStructure) {
     projectStructure.writeln('\n## Aggregated Metrics\n');
     projectStructure.writeln(_metricsAggregator.toString());
+  }
+
+  void _addImportGraph(StringBuffer projectStructure) {
+    projectStructure.writeln('\n## Import Graph\n');
+    projectStructure.writeln(_importGraph.toString());
   }
 }

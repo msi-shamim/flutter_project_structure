@@ -6,6 +6,7 @@ import 'dependency_analysis.dart';
 import 'file_purpose_analyzer.dart';
 import 'file_statistics.dart';
 import 'framework_detector.dart';
+import 'import_graph.dart';
 import 'metrics_aggregator.dart';
 import 'project_type_detector.dart';
 import 'todo_comments.dart';
@@ -28,6 +29,7 @@ class ProjectContext {
     this.conventionAnalyzer,
     this.filePurposeAnalyzer,
     this.metricsAggregator,
+    this.importGraph,
   });
 
   /// The root directory that was analyzed (e.g., 'lib').
@@ -46,4 +48,7 @@ class ProjectContext {
   final ConventionAnalyzer? conventionAnalyzer;
   final FilePurposeAnalyzer? filePurposeAnalyzer;
   final MetricsAggregator? metricsAggregator;
+
+  /// File-level dependency graph, for blast-radius and reachability queries.
+  final ImportGraph? importGraph;
 }
